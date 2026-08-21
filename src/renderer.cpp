@@ -291,6 +291,9 @@ namespace renderer
                 batchCursor.step<RenderBatch>();
                 const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
 
+                RenderEntity* entity    = entities.data() + *entityIndex;
+                entity->transform       = *transform;
+
                 break;
             }
             default:
