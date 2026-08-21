@@ -8,6 +8,6 @@ namespace renderer
 {
     struct Frame
     {
-        std::vector<RenderCommand> renderCommands;
+        std::vector<Command> renderCommands;
     };
 }

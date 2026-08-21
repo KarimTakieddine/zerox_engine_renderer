@@ -18,6 +18,8 @@ namespace renderer
     struct Frustum;
     struct RenderEntity;
     struct Shader;
+    struct Frame;
+    struct Command;
 
     static constexpr size_t ALLOCATOR_SIZE      = 1 << 13;
     static constexpr uint64_t MEMORY_ALIGNMENT  = 16;
@@ -227,4 +229,7 @@ namespace renderer
     void renderBatch(const RenderBatchSpan<true>& span);
     void renderBatches(const ConstGraphicsMemory& memory);
     void render(const ConstGraphicsMemory& memory);
+
+    void processCommand(const MutableGraphicsMemory& memory, const Command* command);
+    void processFrame(const MutableGraphicsMemory& memory, const Frame* frame);
 }

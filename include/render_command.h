@@ -18,9 +18,9 @@ namespace renderer
         NONE = 0
     };
 
-    struct alignas(128) RenderCommand
+    struct alignas(256) Command
     {
-        static constexpr size_t DATA_SECTION_SIZE = 126;
+        static constexpr size_t DATA_SECTION_SIZE = 254;
 
         std::byte data[DATA_SECTION_SIZE];
 

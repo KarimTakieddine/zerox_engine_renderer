@@ -6,6 +6,7 @@
 #include "locations_descriptor.h"
 #include "mesh.hpp"
 #include "renderer.hpp"
+#include "render_frame.h"
 #include "shader.h"
 #include "uniform_buffer_segment.h"
 
@@ -258,5 +259,55 @@ namespace renderer
     {
         uploadUniformBuffer(memory);
         renderBatches(memory);
+    }
+
+    void processCommand(const MutableGraphicsMemory& memory, const Command* command)
+    {
+        MutableMemoryView renderBatchView(memory.renderBatchSpan);
+
+        MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
+
+        const auto batchCount = renderBatchView.read_object<uint64_t>(batchCursor.getOffset());
+        batchCursor.step<uint64_t>();
+
+        FixedSpan<std::byte, true> commandSpan(command->data, Command::DATA_SECTION_SIZE);
+        MemoryCursor<MEMORY_ALIGNMENT> commandCursor;
+        ConstMemoryView commandView(commandSpan);
+
+        switch (command->type)
+        {
+            case CommandType::UPDATE_ENTITY_TRANSFORM:
+            {
+                const auto* batchIndex = commandView.read_object<size_t>(commandCursor.getOffset()).data();
+                commandCursor.step<size_t>();
+
+                const auto* entityIndex = commandView.read_object<size_t>(commandCursor.getOffset()).data();
+                commandCursor.step<size_t>();
+
+                const auto* transform = commandView.read_object<Transform>(commandCursor.getOffset()).data();
+
+                for (size_t i = 0; i < *batchIndex; ++i)
+                {
+                    batchCursor.step<RenderBatch>();
+                    const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+                    batchCursor.step_array<RenderEntity>(entities.size());
+                }
+
+                batchCursor.step<RenderBatch>();
+                const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+
+                break;
+            }
+            default:
+                break;
+        }
+    }
+
+    void processFrame(const MutableGraphicsMemory& memory, const Frame* frame)
+    {
+        for (const auto& command : frame->renderCommands)
+        {
+            processCommand(memory, &command);
+        }
     }
 }
