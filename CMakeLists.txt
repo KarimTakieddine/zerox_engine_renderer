@@ -20,6 +20,7 @@ if (NOT DEFINED MEMORY_READER_DIR)
 endif()
 
 list(APPEND SOURCES
+    ${SRC_DIR}/render_frame_buffer.cpp
     ${SRC_DIR}/renderer.cpp
     ${SRC_DIR}/renderer_opengl.cpp)
 
