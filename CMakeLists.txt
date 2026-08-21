@@ -15,7 +15,7 @@ list(APPEND SOURCES
     ${SRC_DIR}/renderer.cpp
     ${SRC_DIR}/renderer_opengl.cpp)
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(${PROJECT_NAME} SHARED ${SOURCES})
 
 find_package(glfw3 3.4 REQUIRED)
 find_package(glm 1.0 REQUIRED)
