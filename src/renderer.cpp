@@ -180,7 +180,12 @@ namespace renderer
 
         uploadMeshes(freezeGraphicsMemory(memory));
 
-        setShaderLocations(memory, 0, 0);
+        for (size_t i = 0; i < config->locationsLinkCount; ++i)
+        {
+            const ShaderLocationsLink* link = config->shaderLocationsLinks + i;
+
+            setShaderLocations(memory, link->shaderProgramIndex, link->locationsIndex);
+        }
 
         setCameraEye(memory, config->cameraEye);
         setCameraFrustum(memory, config->cameraFrustum);

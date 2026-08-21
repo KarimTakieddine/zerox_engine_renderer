@@ -40,26 +40,34 @@ namespace renderer
         size_t programIndex         { 0 };
     };
 
+    struct ShaderLocationsLink
+    {
+        size_t locationsIndex       { 0 };
+        size_t shaderProgramIndex   { 0 };
+    };
+
     struct GraphicsConfig
     {
-        const Mesh* meshes                          { nullptr };
-        const char* const* textures                 { nullptr };
-        const size_t* renderEntityCounts            { nullptr };
-        const Shader* shaders                       { nullptr };
-        const Eye* cameraEye                        { nullptr };
-        const Frustum* cameraFrustum                { nullptr };
-        const char* const cameraUniformBuffer       { nullptr };
-        const char* const* cameraUniformNames       { nullptr };
-        const ShaderCompileStep* shaderCompileSteps { nullptr };
-        size_t meshCount                            { 0 };
-        size_t bufferCount                          { 0 };
-        size_t vertexArrayCount                     { 0 };
-        size_t textureCount                         { 0 };
-        size_t shaderCount                          { 0 };
-        size_t shaderProgramCount                   { 0 };
-        size_t locationsDescriptorCount             { 0 };
-        size_t renderBatchCount                     { 0 };
-        size_t compileStepCount                     { 0 };
+        const Mesh* meshes                              { nullptr };
+        const char* const* textures                     { nullptr };
+        const size_t* renderEntityCounts                { nullptr };
+        const Shader* shaders                           { nullptr };
+        const Eye* cameraEye                            { nullptr };
+        const Frustum* cameraFrustum                    { nullptr };
+        const char* const cameraUniformBuffer           { nullptr };
+        const char* const* cameraUniformNames           { nullptr };
+        const ShaderCompileStep* shaderCompileSteps     { nullptr };
+        const ShaderLocationsLink* shaderLocationsLinks { nullptr };
+        size_t meshCount                                { 0 };
+        size_t bufferCount                              { 0 };
+        size_t vertexArrayCount                         { 0 };
+        size_t textureCount                             { 0 };
+        size_t shaderCount                              { 0 };
+        size_t shaderProgramCount                       { 0 };
+        size_t locationsDescriptorCount                 { 0 };
+        size_t renderBatchCount                         { 0 };
+        size_t compileStepCount                         { 0 };
+        size_t locationsLinkCount                       { 0 };
     };
 
     template<bool IsConst = false>
