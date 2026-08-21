@@ -163,24 +163,27 @@ namespace renderer
         generateBuffers(memory);
         generateVertexArrays(memory);
         generateTextures(memory);
-
         generateShaders(memory, config->shaderCount, config->shaders, platformFunctions);
-
-        size_t shaderIndices[2] = { 0, 1 };
         generateShaderPrograms(memory);
-        compileShaderProgram(memory, 0, 2, shaderIndices);
-
         generateMeshes(memory);
+        generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
+
+        for (size_t i = 0; i < config->compileStepCount; ++i)
+        {
+            const ShaderCompileStep* compileStep = config->shaderCompileSteps + i;
+
+            compileShaderProgram(
+                memory,
+                compileStep->programIndex,
+                compileStep->shaderCount,
+                compileStep->shaderIndices);
+        }
 
         uploadMeshes(freezeGraphicsMemory(memory));
-
         setShaderLocations(memory, 0, 0);
-
         setCameraEye(memory, config->cameraEye);
         setCameraFrustum(memory, config->cameraFrustum);
         updateCamera(memory);
-
-        generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
         mapCameraUniforms(memory);
 
         generateRenderBatch(memory, 0, 0, 0, 0);

@@ -33,24 +33,33 @@ namespace renderer
         ReadFileFunc readFile;
     };
 
+    struct ShaderCompileStep
+    {
+        const size_t* shaderIndices { nullptr };
+        size_t shaderCount          { 0 };
+        size_t programIndex         { 0 };
+    };
+
     struct GraphicsConfig
     {
-        const Mesh* meshes                      { nullptr };
-        const char* const* textures             { nullptr };
-        const size_t* renderEntityCounts        { nullptr };
-        const Shader* shaders                   { nullptr };
-        const Eye* cameraEye                    { nullptr };
-        const Frustum* cameraFrustum            { nullptr };
-        const char* const cameraUniformBuffer   { nullptr };
-        const char* const* cameraUniformNames   { nullptr };
-        size_t meshCount                        { 0 };
-        size_t bufferCount                      { 0 };
-        size_t vertexArrayCount                 { 0 };
-        size_t textureCount                     { 0 };
-        size_t shaderCount                      { 0 };
-        size_t shaderProgramCount               { 0 };
-        size_t locationsDescriptorCount         { 0 };
-        size_t renderBatchCount                 { 0 };
+        const Mesh* meshes                          { nullptr };
+        const char* const* textures                 { nullptr };
+        const size_t* renderEntityCounts            { nullptr };
+        const Shader* shaders                       { nullptr };
+        const Eye* cameraEye                        { nullptr };
+        const Frustum* cameraFrustum                { nullptr };
+        const char* const cameraUniformBuffer       { nullptr };
+        const char* const* cameraUniformNames       { nullptr };
+        const ShaderCompileStep* shaderCompileSteps { nullptr };
+        size_t meshCount                            { 0 };
+        size_t bufferCount                          { 0 };
+        size_t vertexArrayCount                     { 0 };
+        size_t textureCount                         { 0 };
+        size_t shaderCount                          { 0 };
+        size_t shaderProgramCount                   { 0 };
+        size_t locationsDescriptorCount             { 0 };
+        size_t renderBatchCount                     { 0 };
+        size_t compileStepCount                     { 0 };
     };
 
     template<bool IsConst = false>
