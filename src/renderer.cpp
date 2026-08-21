@@ -166,8 +166,6 @@ namespace renderer
 
         generateShaders(memory, config->shaderCount, config->shaders, platformFunctions);
 
-        // TODO(Karim): Need this to be configurable somehow
-
         size_t shaderIndices[2] = { 0, 1 };
         generateShaderPrograms(memory);
         compileShaderProgram(memory, 0, 2, shaderIndices);
@@ -176,20 +174,14 @@ namespace renderer
 
         uploadMeshes(freezeGraphicsMemory(memory));
 
-        // TODO(Karim): Need this to be configurable somehow
-
         setShaderLocations(memory, 0, 0);
 
+        setCameraEye(memory, config->cameraEye);
         setCameraFrustum(memory, config->cameraFrustum);
-
         updateCamera(memory);
 
-        generateUniformBuffer(
-            memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
-    
+        generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
         mapCameraUniforms(memory);
-
-        // TODO(Karim): Need this to be configurable somehow
 
         generateRenderBatch(memory, 0, 0, 0, 0);
         setVertexLayout(memory, 0, 0);
