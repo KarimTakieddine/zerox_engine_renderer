@@ -166,7 +166,6 @@ namespace renderer
         generateShaders(memory, config->shaderCount, config->shaders, platformFunctions);
         generateShaderPrograms(memory);
         generateMeshes(memory);
-        generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
 
         for (size_t i = 0; i < config->compileStepCount; ++i)
         {
@@ -180,10 +179,14 @@ namespace renderer
         }
 
         uploadMeshes(freezeGraphicsMemory(memory));
+
         setShaderLocations(memory, 0, 0);
+
         setCameraEye(memory, config->cameraEye);
         setCameraFrustum(memory, config->cameraFrustum);
         updateCamera(memory);
+
+        generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
         mapCameraUniforms(memory);
 
         generateRenderBatch(memory, 0, 0, 0, 0);
