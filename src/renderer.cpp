@@ -270,21 +270,16 @@ namespace renderer
         const auto batchCount = renderBatchView.read_object<uint64_t>(batchCursor.getOffset());
         batchCursor.step<uint64_t>();
 
-        FixedSpan<std::byte, true> commandSpan(command->data, Command::DATA_SECTION_SIZE);
-        MemoryCursor<MEMORY_ALIGNMENT> commandCursor;
+        FixedSpan<std::byte, true, Command::DATA_SECTION_SIZE> commandSpan(command->data, Command::DATA_SECTION_SIZE);
         ConstMemoryView commandView(commandSpan);
 
         switch (command->type)
         {
             case CommandType::UPDATE_ENTITY_TRANSFORM:
             {
-                const auto* batchIndex = commandView.read_object<size_t>(commandCursor.getOffset()).data();
-                commandCursor.step<size_t>();
-
-                const auto* entityIndex = commandView.read_object<size_t>(commandCursor.getOffset()).data();
-                commandCursor.step<size_t>();
-
-                const auto* transform = commandView.read_object<Transform>(commandCursor.getOffset()).data();
+                const auto* batchIndex  = commandView.read_object<size_t>(0).data();
+                const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
+                const auto* transform   = commandView.read_object<Transform>(2 * sizeof(size_t)).data();
 
                 for (size_t i = 0; i < *batchIndex; ++i)
                 {
