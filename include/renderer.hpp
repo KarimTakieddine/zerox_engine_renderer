@@ -46,6 +46,15 @@ namespace renderer
         size_t shaderProgramIndex   { 0 };
     };
 
+    struct RenderBatchConfig
+    {
+        size_t batchIndex           { 0 };
+        size_t shaderProgramIndex   { 0 };
+        size_t vertexArrayIndex     { 0 };
+        size_t shaderLocationsIndex { 0 };
+        size_t meshIndex            { 0 };
+    };
+
     struct GraphicsConfig
     {
         const Mesh* meshes                              { nullptr };
@@ -58,6 +67,7 @@ namespace renderer
         const char* const* cameraUniformNames           { nullptr };
         const ShaderCompileStep* shaderCompileSteps     { nullptr };
         const ShaderLocationsLink* shaderLocationsLinks { nullptr };
+        const RenderBatchConfig* renderBatchConfigs     { nullptr };
         size_t meshCount                                { 0 };
         size_t bufferCount                              { 0 };
         size_t vertexArrayCount                         { 0 };
@@ -68,6 +78,7 @@ namespace renderer
         size_t renderBatchCount                         { 0 };
         size_t compileStepCount                         { 0 };
         size_t locationsLinkCount                       { 0 };
+        size_t batchConfigCount                         { 0 };
     };
 
     template<bool IsConst = false>
@@ -199,6 +210,7 @@ namespace renderer
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
     bool generateRenderBatch(const MutableGraphicsMemory& memory, size_t batchIndex, size_t vertexArrayIndex, size_t programIndex, size_t descriptorIndex);
     bool setVertexLayout(const MutableGraphicsMemory& memory, size_t batchIndex, size_t meshIndex);
+    bool configureRenderBatch(const MutableGraphicsMemory& memory, const RenderBatchConfig* batchConfig);
     void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config, const PlatformFunctions* platformFunctions);
 
 

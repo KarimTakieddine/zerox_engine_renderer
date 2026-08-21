@@ -194,8 +194,26 @@ namespace renderer
         generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
         mapCameraUniforms(memory);
 
-        generateRenderBatch(memory, 0, 0, 0, 0);
-        setVertexLayout(memory, 0, 0);
+        for (size_t i = 0; i < config->batchConfigCount; ++i)
+        {
+            configureRenderBatch(memory, config->renderBatchConfigs + i);
+        }
+    }
+
+    bool configureRenderBatch(const MutableGraphicsMemory& memory, const RenderBatchConfig* batchConfig)
+    {
+        return
+            generateRenderBatch(
+                memory,
+                batchConfig->batchIndex,
+                batchConfig->vertexArrayIndex,
+                batchConfig->shaderProgramIndex,
+                batchConfig->shaderLocationsIndex) &&
+            
+            setVertexLayout(
+                memory,
+                batchConfig->batchIndex,
+                batchConfig->meshIndex);
     }
 
     void freeGraphicsResources(const MutableGraphicsMemory& memory)
