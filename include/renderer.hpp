@@ -41,7 +41,6 @@ namespace renderer
         const Shader* shaders                   { nullptr };
         const Eye* cameraEye                    { nullptr };
         const Frustum* cameraFrustum            { nullptr };
-        const Camera* camera                    { nullptr };
         const char* const cameraUniformBuffer   { nullptr };
         const char* const* cameraUniformNames   { nullptr };
         size_t meshCount                        { 0 };

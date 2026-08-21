@@ -184,13 +184,6 @@ namespace renderer
 
         updateCamera(memory);
 
-        const char* cameraUniformNames[4] = {
-            "cameraProjection",
-            "cameraLocalToWorld",
-            "cameraLocalRotation",
-            "cameraView"
-        };
-
         generateUniformBuffer(
             memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
     
