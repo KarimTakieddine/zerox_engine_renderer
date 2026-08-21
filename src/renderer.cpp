@@ -142,44 +142,31 @@ namespace renderer
         }
     }
 
-    void allocate(Allocator* allocator)
+    void allocateGraphicsResources(Allocator* allocator, const GraphicsConfig* config)
     {
         allocator->allocate(ALLOCATOR_SIZE);
 
-        allocateBuffers(allocator, 3);
-        allocateVertexArrays(allocator, 1);
-        allocateTextures(allocator, 1);
-        allocateShaders(allocator, 2);
-        allocateShaderPrograms(allocator, 1);
-
-        Vertex quadVertices[4]          = {
-            { { -0.5f, -0.5f, 0.0f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
-            { { -0.5f, 0.5f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
-            { { 0.5f, 0.5f, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f } },
-            { { 0.5f, -0.5f, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f } },
-        };
-        unsigned int quadTriangles[6]   = { 0, 2, 1, 0, 3, 2 };
-        Mesh meshes[1] = { { quadVertices, quadTriangles, 4, 6 } };
-        allocateMeshes(allocator, 1, meshes);
-        allocateLocationsDescriptors(allocator, 1);
+        allocateBuffers(allocator, config->bufferCount);
+        allocateVertexArrays(allocator, config->vertexArrayCount);
+        allocateTextures(allocator, config->textureCount);
+        allocateShaders(allocator, config->shaderCount);
+        allocateShaderPrograms(allocator, config->shaderProgramCount);
+        allocateMeshes(allocator, config->meshCount, config->meshes);
+        allocateLocationsDescriptors(allocator, config->locationsDescriptorCount);
         allocateCamera(allocator);
         allocateUniformBuffer(allocator, 4);
-
-        const size_t entityCount = 4;
-        allocateRenderBatches(allocator, 1, &entityCount);
+        allocateRenderBatches(allocator, config->renderBatchCount, config->renderEntityCounts);
     }
 
-    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const PlatformFunctions* platformFunctions)
+    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config, const PlatformFunctions* platformFunctions)
     {
         generateBuffers(memory);
         generateVertexArrays(memory);
         generateTextures(memory);
 
-        Shader shaderList[2] = {
-            { "./shaders/3d_transform_vertex.slh", Shader::Type::VERTEX },
-            { "./shaders/3d_transform_fragment.slh", Shader::Type::FRAGMENT },
-        };
-        generateShaders(memory, 2, shaderList, platformFunctions);
+        generateShaders(memory, config->shaderCount, config->shaders, platformFunctions);
+
+        // TODO(Karim): Need this to be configurable somehow
 
         size_t shaderIndices[2] = { 0, 1 };
         generateShaderPrograms(memory);
@@ -189,22 +176,11 @@ namespace renderer
 
         uploadMeshes(freezeGraphicsMemory(memory));
 
+        // TODO(Karim): Need this to be configurable somehow
+
         setShaderLocations(memory, 0, 0);
 
-        Eye cameraEye = {
-            .position   = glm::vec3{ 0.0f, 0.0f, 10.0f },
-            .target	    = glm::vec3{ 0.0f, 0.0f, 0.0f },
-            .up		    = glm::vec3{ 0.0f, 1.0f, 0.0f }
-        };
-        setCameraEye(memory, &cameraEye);
-
-        Frustum cameraFrustum = {
-            .fov    = 45.0f,
-            .aspect = 1920.0f / 1080.0f,
-            .near   = 1.0f,
-            .far    = 100.0f
-        };
-        setCameraFrustum(memory, &cameraFrustum);
+        setCameraFrustum(memory, config->cameraFrustum);
 
         updateCamera(memory);
 
@@ -215,8 +191,12 @@ namespace renderer
             "cameraView"
         };
 
-        generateUniformBuffer(memory, 0, "CameraMatrices", cameraUniformNames);
+        generateUniformBuffer(
+            memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
+    
         mapCameraUniforms(memory);
+
+        // TODO(Karim): Need this to be configurable somehow
 
         generateRenderBatch(memory, 0, 0, 0, 0);
         setVertexLayout(memory, 0, 0);

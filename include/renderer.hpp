@@ -33,6 +33,27 @@ namespace renderer
         ReadFileFunc readFile;
     };
 
+    struct GraphicsConfig
+    {
+        const Mesh* meshes                      { nullptr };
+        const char* const* textures             { nullptr };
+        const size_t* renderEntityCounts        { nullptr };
+        const Shader* shaders                   { nullptr };
+        const Eye* cameraEye                    { nullptr };
+        const Frustum* cameraFrustum            { nullptr };
+        const Camera* camera                    { nullptr };
+        const char* const cameraUniformBuffer   { nullptr };
+        const char* const* cameraUniformNames   { nullptr };
+        size_t meshCount                        { 0 };
+        size_t bufferCount                      { 0 };
+        size_t vertexArrayCount                 { 0 };
+        size_t textureCount                     { 0 };
+        size_t shaderCount                      { 0 };
+        size_t shaderProgramCount               { 0 };
+        size_t locationsDescriptorCount         { 0 };
+        size_t renderBatchCount                 { 0 };
+    };
+
     template<bool IsConst = false>
     inline GraphicsMemory<IsConst> readGraphicsMemory(std::conditional_t<IsConst, const Allocator*, Allocator*> allocator)
     {
@@ -141,7 +162,7 @@ namespace renderer
     void allocateCamera(Allocator* allocator);
     void allocateUniformBuffer(Allocator* allocator, size_t segmentCount);
     void allocateRenderBatches(Allocator* allocator, size_t count, const size_t* entityCounts);
-    void allocate(Allocator* allocator);
+    void allocateGraphicsResources(Allocator* allocator, const GraphicsConfig* config);
 
 
     void generateBuffers(const MutableGraphicsMemory& memory);
@@ -162,7 +183,7 @@ namespace renderer
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
     bool generateRenderBatch(const MutableGraphicsMemory& memory, size_t batchIndex, size_t vertexArrayIndex, size_t programIndex, size_t descriptorIndex);
     bool setVertexLayout(const MutableGraphicsMemory& memory, size_t batchIndex, size_t meshIndex);
-    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const PlatformFunctions* platformFunctions);
+    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config, const PlatformFunctions* platformFunctions);
 
 
     void freeBuffers(const MutableGraphicsMemory& memory);
