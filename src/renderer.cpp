@@ -101,6 +101,16 @@ namespace renderer
         camera->view        = glm::lookAtRH(eye->position, eye->target, eye->up);
     }
 
+    void setCameraAspectRatio(const MutableGraphicsMemory& memory, int width, int height)
+    {
+        const auto* frustum = memory.cameraFrustum.data();
+        auto* camera        = memory.camera.data();
+
+        const float aspectRatio = static_cast<float>(width) / height;
+
+        camera->projection = glm::perspective(glm::radians(frustum->fov), aspectRatio, frustum->near, frustum->far);
+    }
+
     void allocateUniformBuffer(Allocator* allocator, size_t segmentCount)
     {
         allocator->requestMemory<unsigned int>();

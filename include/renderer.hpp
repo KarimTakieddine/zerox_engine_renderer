@@ -207,6 +207,7 @@ namespace renderer
     void setCameraEye(const MutableGraphicsMemory& memory, const Eye* eye);
     void setCameraFrustum(const MutableGraphicsMemory& memory, const Frustum* frustum);
     void updateCamera(const MutableGraphicsMemory& memory);
+    void setCameraAspectRatio(const MutableGraphicsMemory& memory, int width, int height);
     bool generateUniformBuffer(const MutableGraphicsMemory& memory, size_t programIndex, const char* name, const char* const* names);
     bool mapCameraUniforms(const MutableGraphicsMemory& memory);
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
