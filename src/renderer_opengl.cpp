@@ -374,8 +374,10 @@ namespace renderer
         locationsDescriptor->positionLocation       = glGetAttribLocation(shaderProgram, "position");
         locationsDescriptor->colorLocation          = glGetAttribLocation(shaderProgram, "color");
         locationsDescriptor->uvLocation             = glGetAttribLocation(shaderProgram, "uv");
+        locationsDescriptor->uvScaleLocation        = glGetAttribLocation(shaderProgram, "uvScale");
         locationsDescriptor->transformLocation      = glGetUniformLocation(shaderProgram, "transform");
         locationsDescriptor->materialColorLocation  = glGetUniformLocation(shaderProgram, "materialColor");
+        locationsDescriptor->textureOffsetLocation  = glGetUniformLocation(shaderProgram, "textureOffset");
 
         return true;
     }
@@ -626,6 +628,8 @@ namespace renderer
     {
         glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, glm::value_ptr(entity->transform.localToWorld));
         glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(entity->material.color));
+        glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(entity->material.uvScale));
+        glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.textureOffset));
 
         glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, nullptr);
     }
