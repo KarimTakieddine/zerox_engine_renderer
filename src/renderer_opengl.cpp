@@ -374,7 +374,7 @@ namespace renderer
         locationsDescriptor->positionLocation       = glGetAttribLocation(shaderProgram, "position");
         locationsDescriptor->colorLocation          = glGetAttribLocation(shaderProgram, "color");
         locationsDescriptor->uvLocation             = glGetAttribLocation(shaderProgram, "uv");
-        locationsDescriptor->uvScaleLocation        = glGetAttribLocation(shaderProgram, "uvScale");
+        locationsDescriptor->uvScaleLocation        = glGetUniformLocation(shaderProgram, "uvScale");
         locationsDescriptor->transformLocation      = glGetUniformLocation(shaderProgram, "transform");
         locationsDescriptor->materialColorLocation  = glGetUniformLocation(shaderProgram, "materialColor");
         locationsDescriptor->textureOffsetLocation  = glGetUniformLocation(shaderProgram, "textureOffset");
