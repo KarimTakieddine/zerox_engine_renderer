@@ -21,6 +21,7 @@ namespace renderer
     struct Shader;
     struct Frame;
     struct Command;
+    struct Texture;
 
     static constexpr size_t ALLOCATOR_SIZE      = 1 << 13;
     static constexpr uint64_t MEMORY_ALIGNMENT  = 16;
@@ -52,7 +53,7 @@ namespace renderer
     struct GraphicsConfig
     {
         const Mesh* meshes                              { nullptr };
-        const char* const* textures                     { nullptr };
+        const Texture* textures                         { nullptr };
         const size_t* renderEntityCounts                { nullptr };
         const Shader* shaders                           { nullptr };
         const Eye* cameraEye                            { nullptr };
@@ -189,6 +190,7 @@ namespace renderer
     void generateBuffers(const MutableGraphicsMemory& memory);
     void generateVertexArrays(const MutableGraphicsMemory& memory);
     void generateTextures(const MutableGraphicsMemory& memory);
+    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const Texture* textures);
     bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders);
     void generateShaderPrograms(const MutableGraphicsMemory& memory);
     bool compileShaderProgram(const MutableGraphicsMemory& memory, size_t index, size_t count, const size_t* indices);

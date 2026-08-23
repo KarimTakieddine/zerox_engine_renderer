@@ -189,7 +189,10 @@ namespace renderer
                 compileStep->shaderIndices);
         }
 
-        uploadMeshes(freezeGraphicsMemory(memory));
+        auto graphicsMemory = freezeGraphicsMemory(memory);
+
+        uploadTextures(graphicsMemory, config->textureCount, config->textures);
+        uploadMeshes(graphicsMemory);
 
         for (size_t i = 0; i < config->locationsLinkCount; ++i)
         {

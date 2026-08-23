@@ -10,6 +10,7 @@
 #include "opengl_allocator.h"
 #include "renderer.hpp"
 #include "shader.h"
+#include "texture.h"
 #include "uniform_buffer_segment.h"
 
 namespace
@@ -47,6 +48,108 @@ namespace renderer
         OpenGLAllocator textureAllocator(glGenTextures, glDeleteTextures, textureObjectData, textureObjectData);
 
         textureAllocator.allocate(static_cast<GLsizei>(textureObjects.size()));
+    }
+
+    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const Texture* textures)
+    {
+        const auto textureObjects = memory.textures;
+
+        const size_t objectCount = textureObjects.size();
+
+        if (count > objectCount)
+        {
+            count = objectCount;
+        }
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            const auto* texture = textures + i;
+
+            auto image = platform::loadImage(texture->path);
+
+            if (!image->isLoaded())
+            {
+                return false;
+            }
+
+            const GLuint textureObject = *(textureObjects.data() + i);
+
+            glBindTexture(GL_TEXTURE_2D, textureObject);
+
+            switch (texture->wrapModeS)
+			{
+			case WrapMode::REPEAT:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				break;
+			case WrapMode::CLAMP_TO_EDGE:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				break;
+			case WrapMode::CLAMP_TO_BORDER:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+				break;
+			default:
+				break;
+			};
+
+			switch (texture->wrapModeT)
+			{
+			case WrapMode::REPEAT:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				break;
+			case WrapMode::CLAMP_TO_EDGE:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				break;
+			case WrapMode::CLAMP_TO_BORDER:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				break;
+			default:
+				break;
+			};
+
+			switch (texture->minFilter)
+			{
+			case Filter::NEAREST:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				break;
+			case Filter::LINEAR:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				break;
+			default:
+				break;
+			};
+
+			switch (texture->magFilter)
+			{
+			case Filter::NEAREST:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				break;
+			case Filter::LINEAR:
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				break;
+			default:
+				break;
+			};
+
+			GLenum format = GL_NONE;
+
+			switch (image->getFormat())
+			{
+			case platform::Image::Format::RGB:
+				format = GL_RGB;
+				break;
+			case platform::Image::Format::RGBA:
+				format = GL_RGBA;
+				break;
+			default:
+				break;
+			}
+
+			glTexImage2D(
+                GL_TEXTURE_2D, 0, format, image->getWidth(), image->getHeight(),
+                0, format, GL_UNSIGNED_BYTE, image->getData());
+        }
+
+        return true;
     }
 
     void generateMeshes(const MutableGraphicsMemory& memory)
