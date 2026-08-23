@@ -34,4 +34,4 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${PLATFORM_DIR}/include"
     "${GLAD_DIR}/${INCLUDE_DIR}")
 
-target_link_libraries(${PROJECT_NAME} PRIVATE GL zerox_engine_glad glm::glm)
+target_link_libraries(${PROJECT_NAME} PUBLIC GL zerox_engine_glad glm::glm)
