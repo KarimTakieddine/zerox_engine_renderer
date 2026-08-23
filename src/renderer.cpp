@@ -309,6 +309,27 @@ namespace renderer
 
                 break;
             }
+            case CommandType::UPDATE_ENTITY_MATERIAL:
+            {
+                const auto* batchIndex  = commandView.read_object<size_t>(0).data();
+                const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
+                const auto* material    = commandView.read_object<Material>(2 * sizeof(size_t)).data();
+
+                for (size_t i = 0; i < *batchIndex; ++i)
+                {
+                    batchCursor.step<RenderBatch>();
+                    const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+                    batchCursor.step_array<RenderEntity>(entities.size());
+                }
+
+                batchCursor.step<RenderBatch>();
+                const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+
+                RenderEntity* entity    = entities.data() + *entityIndex;
+                entity->material        = *material;
+
+                break;
+            }
             default:
                 break;
         }
