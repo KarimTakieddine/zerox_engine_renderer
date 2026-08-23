@@ -1,0 +1,3 @@
+[submodule "zerox_engine_glad"]
+	path = zerox_engine_glad
+	url = https://github.com/KarimTakieddine/zerox_engine_glad.git
