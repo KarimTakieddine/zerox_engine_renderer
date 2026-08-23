@@ -65,7 +65,7 @@ namespace renderer
         {
             const auto* texture = textures + i;
 
-            auto image = platform::loadImage(texture->path, true);
+            auto image = platform::loadImage(texture->path, false);
 
             if (!image->isLoaded())
             {
