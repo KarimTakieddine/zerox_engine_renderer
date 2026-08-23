@@ -4,6 +4,8 @@
 #include <memory_cursor.hpp>
 #include <memory_view.hpp>
 
+#include <platform.h>
+
 #include "locations_descriptor.h"
 #include "opengl_allocator.h"
 #include "renderer.hpp"
@@ -118,7 +120,7 @@ namespace renderer
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size_bytes(), triangles.data(), GL_STATIC_DRAW);
     }
 
-    bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders, const PlatformFunctions* platformFunctions)
+    bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders)
     {
         const auto shadersView = memory.shaders;
 
@@ -154,17 +156,17 @@ namespace renderer
                 return false;
             }
 
-            GLuint shaderObject = glCreateShader(shaderType);
+            const GLuint shaderObject = glCreateShader(shaderType);
 
             *(shadersData + i) = shaderObject;
 
-            size_t fileSize = platformFunctions->getFileSize(shader.path);
+            const size_t fileSize = platform::getFileSize(shader.path);
             if (fileSize == 0)
                 return false;
 
             char* fileBuffer = new char[fileSize + 1]();
             std::memset(fileBuffer, 0, fileSize + 1);
-            if (!platformFunctions->readFile(shader.path, fileBuffer, fileSize))
+            if (!platform::readFile(shader.path, fileBuffer, fileSize))
             {
                 delete[] fileBuffer;
                 return false;

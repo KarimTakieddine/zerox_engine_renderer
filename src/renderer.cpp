@@ -169,12 +169,12 @@ namespace renderer
         allocateRenderBatches(allocator, config->renderBatchCount, config->renderEntityCounts);
     }
 
-    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config, const PlatformFunctions* platformFunctions)
+    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config)
     {
         generateBuffers(memory);
         generateVertexArrays(memory);
         generateTextures(memory);
-        generateShaders(memory, config->shaderCount, config->shaders, platformFunctions);
+        generateShaders(memory, config->shaderCount, config->shaders);
         generateShaderPrograms(memory);
         generateMeshes(memory);
 

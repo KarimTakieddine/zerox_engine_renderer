@@ -7,6 +7,7 @@ set(INCLUDE_DIR include)
 set(SRC_DIR src)
 set(GLAD_LOCAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zerox_engine_glad)
 set(MEMORY_READER_LOCAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/memory_reader)
+set(PLATFORM_LOCAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zerox_engine_platform)
 
 Project(${PROJECT_NAME})
 
@@ -17,6 +18,10 @@ endif()
 
 if (NOT DEFINED MEMORY_READER_DIR)
    set(MEMORY_READER_DIR "${MEMORY_READER_LOCAL_DIR}")
+endif()
+
+if (NOT DEFINED PLATFORM_DIR)
+    set(PLATFORM_DIR "${PLATFORM_LOCAL_DIR}")
 endif()
 
 list(APPEND SOURCES
@@ -32,6 +37,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${INCLUDE_DIR}
     "${GLAD_DIR}/include"
     "${MEMORY_READER_DIR}/${INCLUDE_DIR}"
+    "${PLATFORM_DIR}/include"
     "${GLAD_DIR}/${INCLUDE_DIR}")
 
 target_link_libraries(${PROJECT_NAME} PRIVATE GL zerox_engine_glad glm::glm)

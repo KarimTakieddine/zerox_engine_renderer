@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 #include <bump_allocator.hpp>
 #include <memory_cursor.hpp>
@@ -25,15 +26,6 @@ namespace renderer
     static constexpr uint64_t MEMORY_ALIGNMENT  = 16;
 
     using Allocator = BumpAllocator<16>;
-
-    struct PlatformFunctions
-    {
-        typedef size_t (*GetFileSizeFunc)(const char*);
-        typedef bool (*ReadFileFunc)(const char*, char*, size_t);
-
-        GetFileSizeFunc getFileSize;
-        ReadFileFunc readFile;
-    };
 
     struct ShaderCompileStep
     {
@@ -197,7 +189,7 @@ namespace renderer
     void generateBuffers(const MutableGraphicsMemory& memory);
     void generateVertexArrays(const MutableGraphicsMemory& memory);
     void generateTextures(const MutableGraphicsMemory& memory);
-    bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders, const PlatformFunctions* platformFunctions);
+    bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders);
     void generateShaderPrograms(const MutableGraphicsMemory& memory);
     bool compileShaderProgram(const MutableGraphicsMemory& memory, size_t index, size_t count, const size_t* indices);
     void generateMeshes(const MutableGraphicsMemory& memory);
@@ -214,7 +206,7 @@ namespace renderer
     bool generateRenderBatch(const MutableGraphicsMemory& memory, size_t batchIndex, size_t vertexArrayIndex, size_t programIndex, size_t descriptorIndex);
     bool setVertexLayout(const MutableGraphicsMemory& memory, size_t batchIndex, size_t meshIndex);
     bool configureRenderBatch(const MutableGraphicsMemory& memory, const RenderBatchConfig* batchConfig);
-    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config, const PlatformFunctions* platformFunctions);
+    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config);
 
 
     void freeBuffers(const MutableGraphicsMemory& memory);
