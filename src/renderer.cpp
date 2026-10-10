@@ -1,4 +1,5 @@
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/trigonometric.hpp>
 
 #include "camera.h"
 #include "eye.h"
@@ -341,5 +342,17 @@ namespace renderer
         {
             processCommand(memory, &command);
         }
+    }
+
+    float getFovDegrees(const Camera* camera)
+    {
+        const glm::mat4 projection = camera->projection;
+
+        return 2 * atan(1.0f / projection[1][1]);
+    }
+
+    glm::vec2 getViewportWorldDimensions(const Camera* camera)
+    {
+        return { };
     }
 }
