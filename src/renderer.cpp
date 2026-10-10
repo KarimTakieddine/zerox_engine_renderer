@@ -354,4 +354,12 @@ namespace renderer
 
         return { worldHeight * frustum->aspect, worldHeight };
     }
+
+    glm::vec2 getPixelsPerUnit(int clientWidth, int clientHeight, const glm::vec2& worldDimensions)
+    {
+        return {
+            worldDimensions.x / clientWidth,
+            worldDimensions.y / clientHeight
+        };
+    }
 }
