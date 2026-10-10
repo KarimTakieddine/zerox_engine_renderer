@@ -348,8 +348,10 @@ namespace renderer
         return glm::degrees(2 * atan(1.0f / projection[1][1]));
     }
 
-    glm::vec2 getViewportWorldDimensions(const Camera* camera)
+    glm::vec2 getViewportWorldDimensions(const Camera* camera, const Frustum* frustum)
     {
-        return { };
+        const float worldHeight = 2 * frustum->near * tan(getFovDegrees(camera) * 0.5f);
+
+        return { worldHeight * frustum->aspect, worldHeight };
     }
 }
