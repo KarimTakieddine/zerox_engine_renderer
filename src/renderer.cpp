@@ -358,8 +358,8 @@ namespace renderer
     glm::vec2 getPixelsPerUnit(int clientWidth, int clientHeight, const glm::vec2& worldDimensions)
     {
         return {
-            worldDimensions.x / clientWidth,
-            worldDimensions.y / clientHeight
+            clientWidth / worldDimensions.x,
+            clientHeight / worldDimensions.y
         };
     }
 }
