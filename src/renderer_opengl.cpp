@@ -624,9 +624,16 @@ namespace renderer
         glBindVertexArray(renderBatch->vertexArray);
     }
 
-    void renderEntity(const RenderEntity* entity, const LocationsDescriptor* descriptor, int elementCount)
+    void renderEntity(const RenderEntity* entity, const LocationsDescriptor* descriptor, int elementCount, const glm::vec2& pixelsPerUnit)
     {
-        glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, glm::value_ptr(entity->transform.localToWorld));
+        glm::mat4 entityTransform = entity->transform.localToWorld;
+
+        glm::vec4& position = entityTransform[3];
+
+        position.x = glm::round(position.x / pixelsPerUnit.x) * pixelsPerUnit.x;
+        position.y = glm::round(position.y / pixelsPerUnit.y) * pixelsPerUnit.y;
+
+        glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, glm::value_ptr(entityTransform));
         glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(entity->material.color));
         glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(entity->material.uvScale));
         glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.textureOffset));

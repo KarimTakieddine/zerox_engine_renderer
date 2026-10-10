@@ -236,7 +236,7 @@ namespace renderer
         freeBuffers(memory);
     }
 
-    void renderBatches(const ConstGraphicsMemory& memory)
+    void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2 pixelsPerUnit)
     {
         ConstMemoryView renderBatchView(memory.renderBatchSpan);
 
@@ -261,15 +261,15 @@ namespace renderer
 
             for (size_t j = 0; j < entities.size(); ++j)
             {
-                renderEntity(entities.data() + j, memory.locationsDescriptors.data() + batch.data()->descriptorIndex, batch.data()->elememtCount);
+                renderEntity(entities.data() + j, memory.locationsDescriptors.data() + batch.data()->descriptorIndex, batch.data()->elememtCount, pixelsPerUnit);
             }
         }
     }
 
-    void render(const ConstGraphicsMemory& memory)
+    void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit)
     {
         uploadUniformBuffer(memory);
-        renderBatches(memory);
+        renderBatches(memory, pixelsPerUnit);
     }
 
     void processCommand(const MutableGraphicsMemory& memory, const Command* command)
