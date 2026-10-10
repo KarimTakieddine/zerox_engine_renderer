@@ -104,12 +104,9 @@ namespace renderer
 
     void setCameraAspectRatio(const MutableGraphicsMemory& memory, int width, int height)
     {
-        const auto* frustum = memory.cameraFrustum.data();
-        auto* camera        = memory.camera.data();
+        memory.cameraFrustum.data()->aspect = static_cast<float>(width) / height;
 
-        const float aspectRatio = static_cast<float>(width) / height;
-
-        camera->projection = glm::perspective(glm::radians(frustum->fov), aspectRatio, frustum->near, frustum->far);
+        updateCamera(memory);
     }
 
     void allocateUniformBuffer(Allocator* allocator, size_t segmentCount)
