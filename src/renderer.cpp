@@ -236,9 +236,9 @@ namespace renderer
         freeBuffers(memory);
     }
 
-    void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2 pixelsPerUnit)
+    void renderBatches(const MutableGraphicsMemory& memory, const glm::vec2 pixelsPerUnit)
     {
-        ConstMemoryView renderBatchView(memory.renderBatchSpan);
+        MutableMemoryView renderBatchView(memory.renderBatchSpan);
 
         MemoryCursor<MEMORY_ALIGNMENT> renderBatchCursor;
 
@@ -266,9 +266,9 @@ namespace renderer
         }
     }
 
-    void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit)
+    void render(const MutableGraphicsMemory& memory, const glm::vec2& pixelsPerUnit)
     {
-        uploadUniformBuffer(memory);
+        uploadUniformBuffer(freezeGraphicsMemory(memory));
         renderBatches(memory, pixelsPerUnit);
     }
 
