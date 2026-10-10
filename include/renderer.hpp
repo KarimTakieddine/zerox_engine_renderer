@@ -229,5 +229,5 @@ namespace renderer
     void processFrame(const MutableGraphicsMemory& memory, const Frame* frame);
 
     float getFovDegrees(const Camera* camera);
-    glm::vec2 getViewportWorldDimensions(const Camera* camera);
+    glm::vec2 getViewportWorldDimensions(const Camera* camera, const Frustum* frustum);
 }
