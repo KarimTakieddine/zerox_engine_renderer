@@ -333,6 +333,7 @@ namespace renderer
                 const auto* width   = commandView.read_object<int>(0).data();
                 const auto* height  = commandView.read_object<int>(sizeof(int)).data();
                 
+                setViewportArea(*width, *height);
                 setCameraAspectRatio(memory, *width, *height);
 
                 break;

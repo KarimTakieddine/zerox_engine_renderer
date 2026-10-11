@@ -467,6 +467,11 @@ namespace renderer
         return true;
     }
 
+    void setViewportArea(int width, int height)
+    {
+        glViewport(0, 0, width, height);
+    }
+
     void uploadUniformBuffer(const ConstGraphicsMemory& memory)
     {
         const auto uniformBuffer = memory.uniformBuffer;
