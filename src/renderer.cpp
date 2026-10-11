@@ -328,6 +328,15 @@ namespace renderer
 
                 break;
             }
+            case CommandType::SET_CAMERA_ASPECT_RATIO:
+            {
+                const auto* width   = commandView.read_object<int>(0).data();
+                const auto* height  = commandView.read_object<int>(sizeof(int)).data();
+                
+                setCameraAspectRatio(memory, *width, *height);
+
+                break;
+            }
             default:
                 break;
         }
