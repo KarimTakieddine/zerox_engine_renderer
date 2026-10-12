@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.3.3 FATAL_ERROR)
+cmake_minimum_required(VERSION 4.3.1 FATAL_ERROR)
 
 set(CMAKE_CXX_STANDARD 20 REQUIRED)
 
@@ -26,7 +26,11 @@ list(APPEND SOURCES
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-find_package(glm 1.0 REQUIRED)
+if (WIN32)
+    add_subdirectory(glm)
+elseif (LINUX)
+    find_package(glm 1.0 REQUIRED)
+endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${INCLUDE_DIR}
@@ -34,4 +38,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${PLATFORM_DIR}/include"
     "${GLAD_DIR}/${INCLUDE_DIR}")
 
-target_link_libraries(${PROJECT_NAME} PUBLIC GL zerox_engine_glad zerox_engine_platform glm::glm)
+if (WIN32)
+    target_link_libraries(${PROJECT_NAME} PUBLIC opengl32 zerox_engine_glad zerox_engine_platform glm::glm)
+elseif(LINUX)
+    target_link_libraries(${PROJECT_NAME} PUBLIC GL zerox_engine_glad zerox_engine_platform glm::glm)
+endif()
