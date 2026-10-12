@@ -98,7 +98,7 @@ namespace renderer
         const auto* frustum = memory.cameraFrustum.data();
         auto* camera        = memory.camera.data();
 
-        camera->projection  = glm::perspective(glm::radians(frustum->fov), frustum->aspect, frustum->near, frustum->far);
+        camera->projection = glm::perspective(glm::radians(frustum->fov), frustum->aspect, frustum->nearPlane, frustum->farPlane);
         camera->view        = glm::lookAtRH(eye->position, eye->target, eye->up);
     }
 
@@ -360,7 +360,7 @@ namespace renderer
 
     glm::vec2 getViewportWorldDimensions(const Camera* camera, const Eye* eye, const Frustum* frustum)
     {
-        const float worldHeight = 2 * frustum->near * eye->position.z * glm::tan(glm::radians(getFovDegrees(camera) * 0.5f));
+        const float worldHeight = 2 * frustum->nearPlane * eye->position.z * glm::tan(glm::radians(getFovDegrees(camera) * 0.5f));
 
         return { worldHeight * frustum->aspect, worldHeight };
     }
