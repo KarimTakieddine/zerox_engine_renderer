@@ -490,53 +490,6 @@ namespace renderer
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    bool generateRenderBatch(const MutableGraphicsMemory& memory, size_t batchIndex, size_t vertexArrayIndex, size_t programIndex, size_t descriptorIndex)
-    {
-        const auto shaderPrograms = memory.shaderPrograms;
-        if (programIndex >= shaderPrograms.size())
-        {
-            return false;
-        }
-
-        const GLuint shaderProgram = shaderPrograms.data()[programIndex];
-
-        auto vertexArrays = memory.vertexArrayObjects;
-        if (vertexArrayIndex >= vertexArrays.size())
-        {
-            return false;
-        }
-
-        const GLuint vertexArray = vertexArrays.data()[vertexArrayIndex];
-
-        MutableMemoryView batchMemoryView(memory.renderBatchSpan);
-        MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
-
-        const auto batchCount = batchMemoryView.read_object<uint64_t>(batchCursor.getOffset());
-
-        if (batchIndex >= *batchCount.data())
-        {
-            return false;
-        }
-
-        batchCursor.step<uint64_t>();
-
-        for (size_t i = 0; i < batchIndex; ++i)
-        {
-            batchCursor.step<RenderBatch>();
-
-            auto entities = batchMemoryView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-            batchCursor.step_array<RenderEntity>(entities.size());
-        }
-
-        auto* batch = batchMemoryView.read_object<RenderBatch>(batchCursor.getOffset()).data();
-
-        batch->descriptorIndex  = descriptorIndex;
-        batch->vertexArray      = vertexArray;
-        batch->shaderProgram    = shaderProgram;
-
-        return true;
-    }
-
     bool setVertexLayout(const MutableGraphicsMemory& memory, size_t batchIndex, size_t meshIndex)
     {
         ConstMemoryView meshView(memory.meshSpan);
@@ -592,7 +545,7 @@ namespace renderer
 
         auto* batch = renderBatchView.read_object<RenderBatch>(batchCursor.getOffset()).data();
 
-        batch->elememtCount = static_cast<int>(triangles.size());
+        batch->elementCount = static_cast<int>(triangles.size());
 
         const auto locationsDescriptors = memory.locationsDescriptors;
         const size_t descriptorIndex    = batch->descriptorIndex;

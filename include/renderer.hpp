@@ -54,7 +54,6 @@ namespace renderer
     {
         const Mesh* meshes                              { nullptr };
         const Texture* textures                         { nullptr };
-        const size_t* renderEntityCounts                { nullptr };
         const Shader* shaders                           { nullptr };
         const Eye* cameraEye                            { nullptr };
         const Frustum* cameraFrustum                    { nullptr };
@@ -62,7 +61,6 @@ namespace renderer
         const char* const* cameraUniformNames           { nullptr };
         const ShaderCompileStep* shaderCompileSteps     { nullptr };
         const ShaderLocationsLink* shaderLocationsLinks { nullptr };
-        const RenderBatchConfig* renderBatchConfigs     { nullptr };
         size_t meshCount                                { 0 };
         size_t bufferCount                              { 0 };
         size_t vertexArrayCount                         { 0 };
@@ -70,10 +68,8 @@ namespace renderer
         size_t shaderCount                              { 0 };
         size_t shaderProgramCount                       { 0 };
         size_t locationsDescriptorCount                 { 0 };
-        size_t renderBatchCount                         { 0 };
         size_t compileStepCount                         { 0 };
         size_t locationsLinkCount                       { 0 };
-        size_t batchConfigCount                         { 0 };
     };
 
     template<bool IsConst = false>
@@ -157,10 +153,10 @@ namespace renderer
         cursor.step_array<UniformBufferSegment>(uniformBufferSegments.size());
 
         const uint64_t renderBatchOffset    = cursor.getOffset();
-        const uint64_t renderBatchCount     = *memoryView.template read_object<uint64_t>(renderBatchOffset).data();
+        graphicsMemory.renderBatchCount     = *memoryView.template read_object<uint64_t>(renderBatchOffset).data();
         cursor.step<uint64_t>();
 
-        for (uint64_t i = 0; i < renderBatchCount; ++i)
+        for (uint64_t i = 0; i < *graphicsMemory.renderBatchCount.data(); ++i)
         {
             cursor.step<RenderBatch>();
 
@@ -183,7 +179,7 @@ namespace renderer
     void allocateLocationsDescriptors(Allocator* allocator, size_t count);
     void allocateCamera(Allocator* allocator);
     void allocateUniformBuffer(Allocator* allocator, size_t segmentCount);
-    void allocateRenderBatches(Allocator* allocator, size_t count, const size_t* entityCounts);
+    void allocateRenderBatchCount(Allocator* allocator);
     void allocateGraphicsResources(Allocator* allocator, const GraphicsConfig* config);
 
 
@@ -206,9 +202,7 @@ namespace renderer
     bool generateUniformBuffer(const MutableGraphicsMemory& memory, size_t programIndex, const char* name, const char* const* names);
     bool mapCameraUniforms(const MutableGraphicsMemory& memory);
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
-    bool generateRenderBatch(const MutableGraphicsMemory& memory, size_t batchIndex, size_t vertexArrayIndex, size_t programIndex, size_t descriptorIndex);
     bool setVertexLayout(const MutableGraphicsMemory& memory, size_t batchIndex, size_t meshIndex);
-    bool configureRenderBatch(const MutableGraphicsMemory& memory, const RenderBatchConfig* batchConfig);
     void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config);
 
 
@@ -226,8 +220,8 @@ namespace renderer
     void renderBatches(const MutableGraphicsMemory& memory, const glm::vec2 pixelsPerUnit);
     void render(const MutableGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
 
-    void processCommand(const MutableGraphicsMemory& memory, const Command* command);
-    void processFrame(const MutableGraphicsMemory& memory, const Frame* frame);
+    void processCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const Command* command);
+    void processFrame(Allocator* allocator, const MutableGraphicsMemory& memory, const Frame* frame);
 
     float getFovDegrees(const Camera* camera);
     glm::vec2 getViewportWorldDimensions(const Camera* camera, const Eye* eye, const Frustum* frustum);

@@ -9,9 +9,11 @@ namespace renderer
     enum class CommandType : unsigned char
     {
         UNKNOWN                 = 0,
-        UPDATE_ENTITY_MATERIAL  = 1,
-        UPDATE_ENTITY_TRANSFORM = 2,
-        SET_CAMERA_ASPECT_RATIO = 3
+        ALLOCATE_RENDER_BATCH   = 1,
+        SET_BATCH_VERTEX_LAYOUT = 2,
+        UPDATE_ENTITY_MATERIAL  = 3,
+        UPDATE_ENTITY_TRANSFORM = 4,
+        SET_CAMERA_ASPECT_RATIO = 5
     };
 
     enum class CommandFlags : unsigned char
