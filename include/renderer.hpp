@@ -144,7 +144,7 @@ namespace renderer
         cursor.step_array<UniformBufferSegment>(uniformBufferSegments.size());
 
         const uint64_t renderBatchOffset    = cursor.getOffset();
-        graphicsMemory.renderBatchCount     = memoryView.template read_object<uint64_t>(renderBatchOffset).data();
+        graphicsMemory.renderBatchCount     = memoryView.template read_object<uint64_t>(renderBatchOffset);
         cursor.step<uint64_t>();
 
         for (uint64_t i = 0; i < *graphicsMemory.renderBatchCount.data(); ++i)
