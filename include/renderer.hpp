@@ -143,19 +143,10 @@ namespace renderer
         graphicsMemory.uniformBufferSegments                                = uniformBufferSegments;
         cursor.step_array<UniformBufferSegment>(uniformBufferSegments.size());
 
-        const uint64_t renderBatchOffset    = cursor.getOffset();
-        graphicsMemory.renderBatchCount     = memoryView.template read_object<uint64_t>(renderBatchOffset);
+        graphicsMemory.renderBatchCount = memoryView.template read_object<uint64_t>(cursor.getOffset());
         cursor.step<uint64_t>();
 
-        for (uint64_t i = 0; i < *graphicsMemory.renderBatchCount.data(); ++i)
-        {
-            cursor.step<RenderBatch>();
-
-            const uint64_t entityCount = *memoryView.template read_object<uint64_t>(cursor.getOffset()).data();
-            cursor.step_array<RenderEntity>(entityCount);
-        }
-
-        graphicsMemory.renderBatchSpan = allocatorSpan.subspan(renderBatchOffset, cursor.getOffset() - renderBatchOffset);
+        graphicsMemory.renderBatchSpan = allocatorSpan.subspan(cursor.getOffset(), allocator->getLiveSizeInBytes() - cursor.getOffset());
 
         return graphicsMemory;
     }
@@ -211,8 +202,8 @@ namespace renderer
     void renderBatches(const MutableGraphicsMemory& memory, const glm::vec2 pixelsPerUnit);
     void render(const MutableGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
 
-    void processCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const Command* command);
-    void processFrame(Allocator* allocator, const MutableGraphicsMemory& memory, const Frame* frame);
+    void processCommand(Allocator* allocator, MutableGraphicsMemory& memory, const Command* command);
+    void processFrame(Allocator* allocator, MutableGraphicsMemory& memory, const Frame* frame);
 
     float getFovDegrees(const Camera* camera);
     glm::vec2 getViewportWorldDimensions(const Camera* camera, const Eye* eye, const Frustum* frustum);

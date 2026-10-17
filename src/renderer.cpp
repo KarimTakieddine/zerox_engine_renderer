@@ -208,14 +208,12 @@ namespace renderer
 
     void renderBatches(const MutableGraphicsMemory& memory, const glm::vec2 pixelsPerUnit)
     {
-        MutableMemoryView renderBatchView(memory.renderBatchSpan);
+        const auto batchCount = *memory.renderBatchCount.data();
 
+        MutableMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<MEMORY_ALIGNMENT> renderBatchCursor;
 
-        const auto batchCount = renderBatchView.read_object<uint64_t>(renderBatchCursor.getOffset());
-        renderBatchCursor.step<uint64_t>();
-
-        for (uint64_t i = 0; i < *batchCount.data(); ++i)
+        for (uint64_t i = 0; i < batchCount; ++i)
         {
             RenderBatchSpan<true> batchSpan;
 
@@ -242,14 +240,12 @@ namespace renderer
         renderBatches(memory, pixelsPerUnit);
     }
 
-    void processCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const Command* command)
+    void processCommand(Allocator* allocator, MutableGraphicsMemory& memory, const Command* command)
     {
+        const auto batchCount = *memory.renderBatchCount.data();
+
         MutableMemoryView renderBatchView(memory.renderBatchSpan);
-
         MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
-
-        const auto batchCount = renderBatchView.read_object<uint64_t>(batchCursor.getOffset());
-        batchCursor.step<uint64_t>();
 
         FixedSpan<std::byte, true, Command::DATA_SECTION_SIZE> commandSpan(command->data, Command::DATA_SECTION_SIZE);
         ConstMemoryView commandView(commandSpan);
@@ -261,6 +257,8 @@ namespace renderer
                 const auto* shaderProgramIndex  = commandView.read_object<size_t>(0).data();
                 const auto* vertexArrayIndex    = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* locationsIndex      = commandView.read_object<size_t>(2 * sizeof(size_t)).data();
+                const auto* meshIndex           = commandView.read_object<size_t>(3 * sizeof(size_t)).data();
+                const auto* entityCount         = commandView.read_object<size_t>(4 * sizeof(size_t)).data();
 
                 const auto shaderPrograms   = memory.shaderPrograms;
                 const auto vertexArrays     = memory.vertexArrayObjects;
@@ -272,24 +270,32 @@ namespace renderer
                         vertexArrays.data()[*vertexArrayIndex]
                 });
 
-                ++(*memory.renderBatchCount.data());
+                allocator->requestMemory<uint64_t>(*entityCount);
+                auto* entities = allocator->requestMemoryArray<RenderEntity>(*entityCount);
 
-                break;
-            }
-            case CommandType::SET_BATCH_VERTEX_LAYOUT:
-            {
-                const auto* batchIndex  = commandView.read_object<size_t>(0).data();
-                const auto* meshIndex   = commandView.read_object<size_t>(sizeof(size_t)).data();
+                size_t* batchCount      = memory.renderBatchCount.data();
+                const size_t batchIndex = *batchCount;
 
-                setVertexLayout(memory, *batchIndex, *meshIndex);
+                ++(*batchCount);
+
+                memory = readGraphicsMemory(allocator);
+
+                setVertexLayout(memory, batchIndex, *meshIndex);
 
                 break;
             }
             case CommandType::UPDATE_ENTITY_TRANSFORM:
             {
+                memory = readGraphicsMemory(allocator);
+
                 const auto* batchIndex  = commandView.read_object<size_t>(0).data();
                 const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* transform   = commandView.read_object<Transform>(2 * sizeof(size_t)).data();
+
+                if (*batchIndex >= *memory.renderBatchCount.data())
+                {
+                    break;
+                }
 
                 for (size_t i = 0; i < *batchIndex; ++i)
                 {
@@ -311,6 +317,11 @@ namespace renderer
                 const auto* batchIndex  = commandView.read_object<size_t>(0).data();
                 const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* material    = commandView.read_object<Material>(2 * sizeof(size_t)).data();
+
+                if (*batchIndex >= *memory.renderBatchCount.data())
+                {
+                    break;
+                }
 
                 for (size_t i = 0; i < *batchIndex; ++i)
                 {
@@ -342,7 +353,7 @@ namespace renderer
         }
     }
 
-    void processFrame(Allocator* allocator, const MutableGraphicsMemory& memory, const Frame* frame)
+    void processFrame(Allocator* allocator, MutableGraphicsMemory& memory, const Frame* frame)
     {
         for (const auto& command : frame->renderCommands)
         {

@@ -526,14 +526,12 @@ namespace renderer
         MutableMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
 
-        const auto batchCount = renderBatchView.read_object<uint64_t>(batchCursor.getOffset());
+        const auto batchCount = memory.renderBatchCount;
 
         if (batchIndex >= *batchCount.data())
         {
             return false;
         }
-
-        batchCursor.step<uint64_t>();
 
         for (size_t i = 0; i < batchIndex; ++i)
         {
