@@ -41,15 +41,6 @@ namespace renderer
         size_t shaderProgramIndex   { 0 };
     };
 
-    struct RenderBatchConfig
-    {
-        size_t batchIndex           { 0 };
-        size_t shaderProgramIndex   { 0 };
-        size_t vertexArrayIndex     { 0 };
-        size_t shaderLocationsIndex { 0 };
-        size_t meshIndex            { 0 };
-    };
-
     struct GraphicsConfig
     {
         const Mesh* meshes                              { nullptr };
