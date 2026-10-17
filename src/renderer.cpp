@@ -137,18 +137,9 @@ namespace renderer
         return true;
     }
 
-    void allocateRenderBatches(Allocator* allocator, size_t count, const size_t* entityCounts)
+    void allocateRenderBatchCount(Allocator* allocator)
     {
-        allocator->requestMemory<uint64_t>(count);
-
-        for (size_t i = 0; i < count; ++i)
-        {
-            allocator->requestMemory<RenderBatch>();
-
-            const size_t entityCount = entityCounts[i];
-            allocator->requestMemory<uint64_t>(entityCount);
-            allocator->requestMemoryArray<RenderEntity>(entityCount);
-        }
+        allocator->requestMemory<uint64_t>();
     }
 
     void allocateGraphicsResources(Allocator* allocator, const GraphicsConfig* config)
@@ -164,7 +155,7 @@ namespace renderer
         allocateLocationsDescriptors(allocator, config->locationsDescriptorCount);
         allocateCamera(allocator);
         allocateUniformBuffer(allocator, 4);
-        allocateRenderBatches(allocator, config->renderBatchCount, config->renderEntityCounts);
+        allocateRenderBatchCount(allocator);
     }
 
     void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config)
@@ -205,27 +196,6 @@ namespace renderer
 
         generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
         mapCameraUniforms(memory);
-
-        for (size_t i = 0; i < config->batchConfigCount; ++i)
-        {
-            configureRenderBatch(memory, config->renderBatchConfigs + i);
-        }
-    }
-
-    bool configureRenderBatch(const MutableGraphicsMemory& memory, const RenderBatchConfig* batchConfig)
-    {
-        return
-            generateRenderBatch(
-                memory,
-                batchConfig->batchIndex,
-                batchConfig->vertexArrayIndex,
-                batchConfig->shaderProgramIndex,
-                batchConfig->shaderLocationsIndex) &&
-            
-            setVertexLayout(
-                memory,
-                batchConfig->batchIndex,
-                batchConfig->meshIndex);
     }
 
     void freeGraphicsResources(const MutableGraphicsMemory& memory)
@@ -238,14 +208,12 @@ namespace renderer
 
     void renderBatches(const MutableGraphicsMemory& memory, const glm::vec2 pixelsPerUnit)
     {
-        MutableMemoryView renderBatchView(memory.renderBatchSpan);
+        const auto batchCount = *memory.renderBatchCount.data();
 
+        MutableMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<MEMORY_ALIGNMENT> renderBatchCursor;
 
-        const auto batchCount = renderBatchView.read_object<uint64_t>(renderBatchCursor.getOffset());
-        renderBatchCursor.step<uint64_t>();
-
-        for (uint64_t i = 0; i < *batchCount.data(); ++i)
+        for (uint64_t i = 0; i < batchCount; ++i)
         {
             RenderBatchSpan<true> batchSpan;
 
@@ -261,7 +229,7 @@ namespace renderer
 
             for (size_t j = 0; j < entities.size(); ++j)
             {
-                renderEntity(entities.data() + j, memory.locationsDescriptors.data() + batch.data()->descriptorIndex, batch.data()->elememtCount, pixelsPerUnit);
+                renderEntity(entities.data() + j, memory.locationsDescriptors.data() + batch.data()->descriptorIndex, batch.data()->elementCount, pixelsPerUnit);
             }
         }
     }
@@ -272,25 +240,62 @@ namespace renderer
         renderBatches(memory, pixelsPerUnit);
     }
 
-    void processCommand(const MutableGraphicsMemory& memory, const Command* command)
+    void processCommand(Allocator* allocator, MutableGraphicsMemory& memory, const Command* command)
     {
+        const auto batchCount = *memory.renderBatchCount.data();
+
         MutableMemoryView renderBatchView(memory.renderBatchSpan);
-
         MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
-
-        const auto batchCount = renderBatchView.read_object<uint64_t>(batchCursor.getOffset());
-        batchCursor.step<uint64_t>();
 
         FixedSpan<std::byte, true, Command::DATA_SECTION_SIZE> commandSpan(command->data, Command::DATA_SECTION_SIZE);
         ConstMemoryView commandView(commandSpan);
 
         switch (command->type)
         {
+            case CommandType::ALLOCATE_RENDER_BATCH:
+            {
+                const auto* shaderProgramIndex  = commandView.read_object<size_t>(0).data();
+                const auto* vertexArrayIndex    = commandView.read_object<size_t>(sizeof(size_t)).data();
+                const auto* locationsIndex      = commandView.read_object<size_t>(2 * sizeof(size_t)).data();
+                const auto* meshIndex           = commandView.read_object<size_t>(3 * sizeof(size_t)).data();
+                const auto* entityCount         = commandView.read_object<size_t>(4 * sizeof(size_t)).data();
+
+                const auto shaderPrograms   = memory.shaderPrograms;
+                const auto vertexArrays     = memory.vertexArrayObjects;
+
+                auto* renderBatch = allocator->requestMemory<RenderBatch>(RenderBatch{
+                    .descriptorIndex    = *locationsIndex,
+                    .shaderProgram      = *shaderProgramIndex >= shaderPrograms.size() ? 0 : shaderPrograms.data()[*shaderProgramIndex],
+                    .vertexArray        = *vertexArrayIndex >= vertexArrays.size() ? 0 :
+                        vertexArrays.data()[*vertexArrayIndex]
+                });
+
+                allocator->requestMemory<uint64_t>(*entityCount);
+                auto* entities = allocator->requestMemoryArray<RenderEntity>(*entityCount);
+
+                size_t* batchCount      = memory.renderBatchCount.data();
+                const size_t batchIndex = *batchCount;
+
+                ++(*batchCount);
+
+                memory = readGraphicsMemory(allocator);
+
+                setVertexLayout(memory, batchIndex, *meshIndex);
+
+                break;
+            }
             case CommandType::UPDATE_ENTITY_TRANSFORM:
             {
+                memory = readGraphicsMemory(allocator);
+
                 const auto* batchIndex  = commandView.read_object<size_t>(0).data();
                 const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* transform   = commandView.read_object<Transform>(2 * sizeof(size_t)).data();
+
+                if (*batchIndex >= *memory.renderBatchCount.data())
+                {
+                    break;
+                }
 
                 for (size_t i = 0; i < *batchIndex; ++i)
                 {
@@ -312,6 +317,11 @@ namespace renderer
                 const auto* batchIndex  = commandView.read_object<size_t>(0).data();
                 const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* material    = commandView.read_object<Material>(2 * sizeof(size_t)).data();
+
+                if (*batchIndex >= *memory.renderBatchCount.data())
+                {
+                    break;
+                }
 
                 for (size_t i = 0; i < *batchIndex; ++i)
                 {
@@ -343,11 +353,11 @@ namespace renderer
         }
     }
 
-    void processFrame(const MutableGraphicsMemory& memory, const Frame* frame)
+    void processFrame(Allocator* allocator, MutableGraphicsMemory& memory, const Frame* frame)
     {
         for (const auto& command : frame->renderCommands)
         {
-            processCommand(memory, &command);
+            processCommand(allocator, memory, &command);
         }
     }
 
