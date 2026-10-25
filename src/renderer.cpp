@@ -148,7 +148,7 @@ namespace renderer
 
         allocateBuffers(allocator, config->bufferCount);
         allocateVertexArrays(allocator, config->vertexArrayCount);
-        allocateTextures(allocator, config->textureCount);
+        allocateTextures(allocator, config->textureCount + config->textureArrayCount);
         allocateShaders(allocator, config->shaderCount);
         allocateShaderPrograms(allocator, config->shaderProgramCount);
         allocateMeshes(allocator, config->meshCount, config->meshes);
@@ -181,6 +181,19 @@ namespace renderer
         auto graphicsMemory = freezeGraphicsMemory(memory);
 
         uploadTextures(graphicsMemory, config->textureCount, config->textures);
+        
+        for (size_t i = 0; i < config->textureArrayCount; ++i)
+        {
+            const TextureArray* textureArray = config->textureArrays + i;
+
+            uploadTextureArray(
+                graphicsMemory,
+                textureArray->data,
+                config->textureCount + i,
+                textureArray->imageCount,
+                textureArray->imageFiles);
+        }
+
         uploadMeshes(graphicsMemory);
 
         for (size_t i = 0; i < config->locationsLinkCount; ++i)

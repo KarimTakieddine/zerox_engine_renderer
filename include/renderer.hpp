@@ -11,7 +11,7 @@
 #include "graphics_memory.hpp"
 #include "mesh_span.hpp"
 #include "render_batch_span.hpp"
-#include "texture_data.h"
+#include "texture_array.h"
 
 namespace renderer
 {
@@ -53,10 +53,12 @@ namespace renderer
         const char* const* cameraUniformNames           { nullptr };
         const ShaderCompileStep* shaderCompileSteps     { nullptr };
         const ShaderLocationsLink* shaderLocationsLinks { nullptr };
+        const TextureArray* textureArrays               { nullptr };
         size_t meshCount                                { 0 };
         size_t bufferCount                              { 0 };
         size_t vertexArrayCount                         { 0 };
         size_t textureCount                             { 0 };
+        size_t textureArrayCount                        { 0 };
         size_t shaderCount                              { 0 };
         size_t shaderProgramCount                       { 0 };
         size_t locationsDescriptorCount                 { 0 };
