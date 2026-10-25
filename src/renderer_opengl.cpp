@@ -16,6 +16,21 @@
 namespace
 {
     constexpr size_t MAX_SHADER_FILE_SIZE = 1 << 10;
+
+    using renderer::DrawMode;
+
+    GLenum drawModeToGLenum(DrawMode drawMode)
+    {
+        switch (drawMode)
+        {
+        case DrawMode::TRIANGLES:
+            return GL_TRIANGLES;
+        case DrawMode::LINES:
+            return GL_LINES;
+        default:
+            return GL_NONE;
+        }
+    }
 }
 
 namespace renderer
@@ -580,7 +595,7 @@ namespace renderer
         glBindVertexArray(renderBatch->vertexArray);
     }
 
-    void renderEntity(RenderEntity* entity, const LocationsDescriptor* descriptor, int elementCount, const glm::vec2& pixelsPerUnit)
+    void renderEntity(RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit)
     {
         glm::mat4& entityTransform = entity->transform.localToWorld;
 
@@ -594,7 +609,7 @@ namespace renderer
         glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(entity->material.uvScale));
         glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.textureOffset));
 
-        glDrawElements(GL_TRIANGLES, elementCount, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);
     }
 
     void freeBuffers(const MutableGraphicsMemory& memory)

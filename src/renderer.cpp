@@ -229,7 +229,12 @@ namespace renderer
 
             for (size_t j = 0; j < entities.size(); ++j)
             {
-                renderEntity(entities.data() + j, memory.locationsDescriptors.data() + batch.data()->descriptorIndex, batch.data()->elementCount, pixelsPerUnit);
+                renderEntity(
+                    entities.data() + j,
+                    memory.locationsDescriptors.data() + batch.data()->descriptorIndex,
+                    batch.data()->drawMode, 
+                    batch.data()->elementCount,
+                    pixelsPerUnit);
             }
         }
     }
@@ -256,9 +261,10 @@ namespace renderer
             {
                 const auto* shaderProgramIndex  = commandView.read_object<size_t>(0).data();
                 const auto* vertexArrayIndex    = commandView.read_object<size_t>(sizeof(size_t)).data();
-                const auto* locationsIndex      = commandView.read_object<size_t>(2 * sizeof(size_t)).data();
-                const auto* meshIndex           = commandView.read_object<size_t>(3 * sizeof(size_t)).data();
-                const auto* entityCount         = commandView.read_object<size_t>(4 * sizeof(size_t)).data();
+                const auto* locationsIndex      = commandView.read_object<uint64_t>(2 * sizeof(size_t)).data();
+                const auto* meshIndex           = commandView.read_object<size_t>(2 * sizeof(size_t) + sizeof(uint64_t)).data();
+                const auto* entityCount         = commandView.read_object<size_t>(3 * sizeof(size_t) + sizeof(uint64_t)).data();
+                const auto* drawMode            = commandView.read_object<DrawMode>(4 * sizeof(size_t) + sizeof(uint64_t)).data();
 
                 const auto shaderPrograms   = memory.shaderPrograms;
                 const auto vertexArrays     = memory.vertexArrayObjects;
@@ -266,8 +272,8 @@ namespace renderer
                 auto* renderBatch = allocator->requestMemory<RenderBatch>(RenderBatch{
                     .descriptorIndex    = *locationsIndex,
                     .shaderProgram      = *shaderProgramIndex >= shaderPrograms.size() ? 0 : shaderPrograms.data()[*shaderProgramIndex],
-                    .vertexArray        = *vertexArrayIndex >= vertexArrays.size() ? 0 :
-                        vertexArrays.data()[*vertexArrayIndex]
+                    .vertexArray        = *vertexArrayIndex >= vertexArrays.size() ? 0 : vertexArrays.data()[*vertexArrayIndex],
+                    .drawMode           = *drawMode
                 });
 
                 allocator->requestMemory<uint64_t>(*entityCount);

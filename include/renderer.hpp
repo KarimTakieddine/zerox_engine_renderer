@@ -197,7 +197,7 @@ namespace renderer
 
     void initializeGraphicsState();
     void clearFrameBuffer();
-    void renderEntity(RenderEntity* entity, const LocationsDescriptor* descriptor, int elementCount, const glm::vec2& pixelsPerUnit);
+    void renderEntity(RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit);
     void renderBatch(const RenderBatchSpan<true>& span);
     void renderBatches(const MutableGraphicsMemory& memory, const glm::vec2 pixelsPerUnit);
     void render(const MutableGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
