@@ -212,4 +212,6 @@ namespace renderer
     float getFovDegrees(const Camera* camera);
     glm::vec2 getViewportWorldDimensions(const Camera* camera, const Eye* eye, const Frustum* frustum);
     glm::vec2 getPixelsPerUnit(int clientWidth, int clientHeight, const glm::vec2& worldDimensions);
+
+    bool setTextureLayer(MutableGraphicsMemory& memory, size_t locationsIndex, uint64_t layer);
 }

@@ -502,6 +502,7 @@ namespace renderer
         locationsDescriptor->transformLocation      = glGetUniformLocation(shaderProgram, "transform");
         locationsDescriptor->materialColorLocation  = glGetUniformLocation(shaderProgram, "materialColor");
         locationsDescriptor->textureOffsetLocation  = glGetUniformLocation(shaderProgram, "textureOffset");
+        locationsDescriptor->textureLayerLocation   = glGetUniformLocation(shaderProgram, "layer");
 
         return true;
     }
@@ -719,6 +720,21 @@ namespace renderer
         glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.textureOffset));
 
         glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);
+    }
+
+    bool setTextureLayer(MutableGraphicsMemory& memory, size_t locationsIndex, uint64_t layer)
+    {
+        const auto shaderLocations = memory.locationsDescriptors;
+        if (locationsIndex >= shaderLocations.size())
+        {
+            return false;
+        }
+
+        glUniform1ui(
+            (shaderLocations.data() + locationsIndex)->textureLayerLocation,
+            layer);
+
+        return true;
     }
 
     void freeBuffers(const MutableGraphicsMemory& memory)

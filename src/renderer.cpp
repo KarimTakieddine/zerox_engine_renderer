@@ -367,6 +367,13 @@ namespace renderer
 
                 break;
             }
+            case CommandType::SET_TEXTURE_LAYER:
+            {
+                const auto* locationsIndex  = commandView.read_object<size_t>(0).data();
+                const auto* layer           = commandView.read_object<uint64_t>(sizeof(size_t)).data();
+
+                setTextureLayer(memory, *locationsIndex, *layer);
+            }
             default:
                 break;
         }
