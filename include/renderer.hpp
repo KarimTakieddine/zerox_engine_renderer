@@ -11,6 +11,7 @@
 #include "graphics_memory.hpp"
 #include "mesh_span.hpp"
 #include "render_batch_span.hpp"
+#include "texture_data.h"
 
 namespace renderer
 {
@@ -169,6 +170,7 @@ namespace renderer
     void generateVertexArrays(const MutableGraphicsMemory& memory);
     void generateTextures(const MutableGraphicsMemory& memory);
     bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const Texture* textures);
+    bool uploadTextureArray(const ConstGraphicsMemory& memory, const TextureData& data, size_t textureIndex, size_t textureCount, const char* const* imageFiles);
     bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders);
     void generateShaderPrograms(const MutableGraphicsMemory& memory);
     bool compileShaderProgram(const MutableGraphicsMemory& memory, size_t index, size_t count, const size_t* indices);

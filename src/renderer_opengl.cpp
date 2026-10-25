@@ -87,11 +87,13 @@ namespace renderer
                 return false;
             }
 
+            const auto& textureData = texture->data;
+
             const GLuint textureObject = *(textureObjects.data() + i);
 
             glBindTexture(GL_TEXTURE_2D, textureObject);
 
-            switch (texture->wrapModeS)
+            switch (textureData.wrapModeS)
 			{
 			case WrapMode::REPEAT:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -106,7 +108,7 @@ namespace renderer
 				break;
 			};
 
-			switch (texture->wrapModeT)
+			switch (textureData.wrapModeT)
 			{
 			case WrapMode::REPEAT:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -121,7 +123,7 @@ namespace renderer
 				break;
 			};
 
-			switch (texture->minFilter)
+			switch (textureData.minFilter)
 			{
 			case Filter::NEAREST:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -133,7 +135,7 @@ namespace renderer
 				break;
 			};
 
-			switch (texture->magFilter)
+			switch (textureData.magFilter)
 			{
 			case Filter::NEAREST:
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -162,6 +164,113 @@ namespace renderer
 			glTexImage2D(
                 GL_TEXTURE_2D, 0, format, image->getWidth(), image->getHeight(),
                 0, format, GL_UNSIGNED_BYTE, image->getData());
+        }
+
+        return true;
+    }
+
+    bool uploadTextureArray(const ConstGraphicsMemory& memory, const TextureData& data, size_t textureIndex, size_t textureCount, const char* const* imageFiles)
+    {
+        const auto textures = memory.textures;
+        if (textureIndex >= textures.size())
+        {
+            return false;
+        }
+
+        glBindTexture(GL_TEXTURE_2D_ARRAY, *(textures.data() + textureIndex));
+
+        glTexStorage3D(
+            GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8,
+            data.width, data.height,
+            static_cast<GLsizei>(textureCount));
+
+        switch (data.wrapModeS)
+        {
+        case WrapMode::REPEAT:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            break;
+        case WrapMode::CLAMP_TO_EDGE:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            break;
+        case WrapMode::CLAMP_TO_BORDER:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+            break;
+        default:
+            break;
+        };
+
+        switch (data.wrapModeT)
+        {
+        case WrapMode::REPEAT:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            break;
+        case WrapMode::CLAMP_TO_EDGE:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            break;
+        case WrapMode::CLAMP_TO_BORDER:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+            break;
+        default:
+            break;
+        };
+
+        switch (data.minFilter)
+        {
+        case Filter::NEAREST:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            break;
+        case Filter::LINEAR:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            break;
+        default:
+            break;
+        };
+
+        switch (data.magFilter)
+        {
+        case Filter::NEAREST:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            break;
+        case Filter::LINEAR:
+            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            break;
+        default:
+            break;
+        };
+
+        for (size_t i = 0; i < textureCount; ++i)
+        {
+            auto image = platform::loadImage(*(imageFiles + i), false);
+
+            if (!image->isLoaded())
+            {
+                return false;
+            }
+
+            if (image->getWidth() != data.width || image->getHeight() != data.height)
+            {
+                return false;
+            }
+
+            GLenum format = GL_NONE;
+
+            switch (image->getFormat())
+            {
+            case platform::Image::Format::RGB:
+                format = GL_RGB;
+                break;
+            case platform::Image::Format::RGBA:
+                format = GL_RGBA;
+                break;
+            default:
+                return false;
+            }
+
+            glTexSubImage3D(
+                GL_TEXTURE_2D_ARRAY, 0,
+                0, 0, i,
+                data.width, data.height, 1,
+                format, GL_UNSIGNED_BYTE, image->getData());
         }
 
         return true;
