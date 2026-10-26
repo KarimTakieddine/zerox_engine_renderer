@@ -206,7 +206,7 @@ namespace renderer
     void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
     void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
 
-    void processCommand(Allocator* allocator, MutableGraphicsMemory& memory, const Command* command);
+    void processCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const Command* command);
     void processFrame(Allocator* allocator, MutableGraphicsMemory& memory, const Frame* frame);
 
     float getFovDegrees(const Camera* camera);

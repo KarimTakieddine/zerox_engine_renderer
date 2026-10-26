@@ -255,10 +255,8 @@ namespace renderer
         renderBatches(memory, pixelsPerUnit);
     }
 
-    void processCommand(Allocator* allocator, MutableGraphicsMemory& memory, const Command* command)
+    void processCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const Command* command)
     {
-        const auto batchCount = *memory.renderBatchCount.data();
-
         MutableMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
 
@@ -289,21 +287,16 @@ namespace renderer
                 allocator->requestMemory<uint64_t>(*entityCount);
                 auto* entities = allocator->requestMemoryArray<RenderEntity>(*entityCount);
 
-                size_t* batchCount      = memory.renderBatchCount.data();
-                const size_t batchIndex = *batchCount;
+                size_t* batchCount = memory.renderBatchCount.data();
+
+                setVertexLayout(memory, *batchCount, *meshIndex);
 
                 ++(*batchCount);
-
-                memory = readGraphicsMemory(allocator);
-
-                setVertexLayout(memory, batchIndex, *meshIndex);
 
                 break;
             }
             case CommandType::UPDATE_ENTITY_TRANSFORM:
             {
-                memory = readGraphicsMemory(allocator);
-
                 const auto* batchIndex  = commandView.read_object<size_t>(0).data();
                 const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* transform   = commandView.read_object<Transform>(2 * sizeof(size_t)).data();
