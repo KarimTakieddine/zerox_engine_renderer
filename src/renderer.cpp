@@ -6,8 +6,9 @@
 #include "frustum.h"
 #include "locations_descriptor.h"
 #include "mesh.hpp"
-#include "renderer.hpp"
+#include "render_entity.h"
 #include "render_frame.h"
+#include "renderer.hpp"
 #include "shader.h"
 #include "uniform_buffer_segment.h"
 
@@ -219,26 +220,22 @@ namespace renderer
         freeBuffers(memory);
     }
 
-    void renderBatches(const MutableGraphicsMemory& memory, const glm::vec2 pixelsPerUnit)
+    void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit)
     {
         const auto batchCount = *memory.renderBatchCount.data();
 
-        MutableMemoryView renderBatchView(memory.renderBatchSpan);
+        ConstMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<MEMORY_ALIGNMENT> renderBatchCursor;
 
         for (uint64_t i = 0; i < batchCount; ++i)
         {
-            RenderBatchSpan<true> batchSpan;
-
-            const auto batch        = renderBatchView.read_object<RenderBatch>(renderBatchCursor.getOffset()); 
-            batchSpan.renderBatch   = batch;
+            const auto batch = renderBatchView.read_object<RenderBatch>(renderBatchCursor.getOffset());
             renderBatchCursor.step<RenderBatch>();
 
             const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(renderBatchCursor.getOffset());
-            batchSpan.entities  = entities;
             renderBatchCursor.step_array<RenderEntity>(entities.size());
 
-            renderBatch(batchSpan);
+            renderBatch(batch.data());
 
             for (size_t j = 0; j < entities.size(); ++j)
             {
@@ -252,9 +249,9 @@ namespace renderer
         }
     }
 
-    void render(const MutableGraphicsMemory& memory, const glm::vec2& pixelsPerUnit)
+    void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit)
     {
-        uploadUniformBuffer(freezeGraphicsMemory(memory));
+        uploadUniformBuffer(memory);
         renderBatches(memory, pixelsPerUnit);
     }
 

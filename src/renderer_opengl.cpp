@@ -8,6 +8,7 @@
 
 #include "locations_descriptor.h"
 #include "opengl_allocator.h"
+#include "render_entity.h"
 #include "renderer.hpp"
 #include "shader.h"
 #include "texture.h"
@@ -18,17 +19,47 @@ namespace
     constexpr size_t MAX_SHADER_FILE_SIZE = 1 << 10;
 
     using renderer::DrawMode;
+    using renderer::Filter;
+    using renderer::WrapMode;
 
-    GLenum drawModeToGLenum(DrawMode drawMode)
+    constexpr GLenum drawModeToGLenum(DrawMode drawMode)
     {
         switch (drawMode)
         {
-        case DrawMode::TRIANGLES:
-            return GL_TRIANGLES;
-        case DrawMode::LINES:
-            return GL_LINES;
-        default:
-            return GL_NONE;
+        case DrawMode::TRIANGLES:   return GL_TRIANGLES;
+        case DrawMode::LINES:       return GL_LINES;
+        default:                    return GL_NONE;
+        }
+    }
+    
+    constexpr GLenum wrapModeToGLenum(WrapMode wrapMode)
+    {
+        switch (wrapMode)
+        {
+        case WrapMode::REPEAT:          return GL_REPEAT;
+        case WrapMode::CLAMP_TO_EDGE:   return GL_CLAMP_TO_EDGE;
+        case WrapMode::CLAMP_TO_BORDER: return GL_CLAMP_TO_BORDER;
+        default:                        return GL_NONE;
+        }
+    }
+
+    constexpr GLenum filterToGLenum(Filter filter)
+    {
+        switch (filter)
+        {
+        case Filter::NEAREST:           return GL_NEAREST;
+        case Filter::LINEAR:            return GL_LINEAR;
+        default:                        return GL_NONE;
+        }
+    }
+
+    constexpr GLenum imageFormatToGLenum(platform::Image::Format format)
+    {
+        switch (format)
+        {
+        case platform::Image::Format::RGB:  return GL_RGB;
+        case platform::Image::Format::RGBA: return GL_RGBA;
+        default:                            return GL_NONE;
         }
     }
 }
@@ -89,77 +120,13 @@ namespace renderer
 
             const auto& textureData = texture->data;
 
-            const GLuint textureObject = *(textureObjects.data() + i);
+            glBindTexture(GL_TEXTURE_2D, *(textureObjects.data() + i));
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ::wrapModeToGLenum(textureData.wrapModeS));
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ::wrapModeToGLenum(textureData.wrapModeT));
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, ::filterToGLenum(textureData.minFilter));
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, ::filterToGLenum(textureData.magFilter));
 
-            glBindTexture(GL_TEXTURE_2D, textureObject);
-
-            switch (textureData.wrapModeS)
-			{
-			case WrapMode::REPEAT:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-				break;
-			case WrapMode::CLAMP_TO_EDGE:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				break;
-			case WrapMode::CLAMP_TO_BORDER:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				break;
-			default:
-				break;
-			};
-
-			switch (textureData.wrapModeT)
-			{
-			case WrapMode::REPEAT:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-				break;
-			case WrapMode::CLAMP_TO_EDGE:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				break;
-			case WrapMode::CLAMP_TO_BORDER:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-				break;
-			default:
-				break;
-			};
-
-			switch (textureData.minFilter)
-			{
-			case Filter::NEAREST:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				break;
-			case Filter::LINEAR:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-				break;
-			default:
-				break;
-			};
-
-			switch (textureData.magFilter)
-			{
-			case Filter::NEAREST:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				break;
-			case Filter::LINEAR:
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-				break;
-			default:
-				break;
-			};
-
-			GLenum format = GL_NONE;
-
-			switch (image->getFormat())
-			{
-			case platform::Image::Format::RGB:
-				format = GL_RGB;
-				break;
-			case platform::Image::Format::RGBA:
-				format = GL_RGBA;
-				break;
-			default:
-				break;
-			}
+            const GLenum format = ::imageFormatToGLenum(image->getFormat());
 
 			glTexImage2D(
                 GL_TEXTURE_2D, 0, format, image->getWidth(), image->getHeight(),
@@ -184,59 +151,10 @@ namespace renderer
             data.width, data.height,
             static_cast<GLsizei>(textureCount));
 
-        switch (data.wrapModeS)
-        {
-        case WrapMode::REPEAT:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            break;
-        case WrapMode::CLAMP_TO_EDGE:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            break;
-        case WrapMode::CLAMP_TO_BORDER:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-            break;
-        default:
-            break;
-        };
-
-        switch (data.wrapModeT)
-        {
-        case WrapMode::REPEAT:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            break;
-        case WrapMode::CLAMP_TO_EDGE:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            break;
-        case WrapMode::CLAMP_TO_BORDER:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-            break;
-        default:
-            break;
-        };
-
-        switch (data.minFilter)
-        {
-        case Filter::NEAREST:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            break;
-        case Filter::LINEAR:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            break;
-        default:
-            break;
-        };
-
-        switch (data.magFilter)
-        {
-        case Filter::NEAREST:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            break;
-        case Filter::LINEAR:
-            glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            break;
-        default:
-            break;
-        };
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, ::wrapModeToGLenum(data.wrapModeS));
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, ::wrapModeToGLenum(data.wrapModeT));
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, ::filterToGLenum(data.minFilter));
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, ::filterToGLenum(data.magFilter));
 
         for (size_t i = 0; i < textureCount; ++i)
         {
@@ -252,25 +170,11 @@ namespace renderer
                 return false;
             }
 
-            GLenum format = GL_NONE;
-
-            switch (image->getFormat())
-            {
-            case platform::Image::Format::RGB:
-                format = GL_RGB;
-                break;
-            case platform::Image::Format::RGBA:
-                format = GL_RGBA;
-                break;
-            default:
-                return false;
-            }
-
             glTexSubImage3D(
                 GL_TEXTURE_2D_ARRAY, 0,
                 0, 0, i,
                 data.width, data.height, 1,
-                format, GL_UNSIGNED_BYTE, image->getData());
+                ::imageFormatToGLenum(image->getFormat()), GL_UNSIGNED_BYTE, image->getData());
         }
 
         return true;
@@ -697,24 +601,29 @@ namespace renderer
         return true;
     }
 
-    void renderBatch(const RenderBatchSpan<true>& span)
+    void renderBatch(const RenderBatch* batch)
     {
-        const auto* renderBatch = span.renderBatch.data();
-
-        glUseProgram(renderBatch->shaderProgram);
-        glBindVertexArray(renderBatch->vertexArray);
+        glUseProgram(batch->shaderProgram);
+        glBindVertexArray(batch->vertexArray);
     }
 
-    void renderEntity(RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit)
+    void renderEntity(const RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit)
     {
-        glm::mat4& entityTransform = entity->transform.localToWorld;
+        const Transform& entityTransform = entity->transform;
 
-        glm::vec4& position = entityTransform[3];
+        glm::mat4 entityLocalToWorld    = entityTransform.localToWorld;
+        glm::vec4& position             = entityLocalToWorld[3];
 
         position.x = glm::round(position.x * pixelsPerUnit.x) / pixelsPerUnit.x;
         position.y = glm::round(position.y * pixelsPerUnit.y) / pixelsPerUnit.y;
 
-        glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, glm::value_ptr(entity->transform.localToWorld));
+        const glm::mat4 transformMatrices[3] = {
+            entityLocalToWorld,
+            entityTransform.localRotation,
+            entityTransform.localScale
+        };
+
+        glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, &transformMatrices[0][0].x);
         glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(entity->material.color));
         glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(entity->material.uvScale));
         glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.textureOffset));

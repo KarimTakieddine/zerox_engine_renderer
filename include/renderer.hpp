@@ -10,7 +10,7 @@
 
 #include "graphics_memory.hpp"
 #include "mesh_span.hpp"
-#include "render_batch_span.hpp"
+#include "render_batch.h"
 #include "texture_array.h"
 
 namespace renderer
@@ -201,10 +201,10 @@ namespace renderer
 
     void initializeGraphicsState();
     void clearFrameBuffer();
-    void renderEntity(RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit);
-    void renderBatch(const RenderBatchSpan<true>& span);
-    void renderBatches(const MutableGraphicsMemory& memory, const glm::vec2 pixelsPerUnit);
-    void render(const MutableGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
+    void renderEntity(const RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit);
+    void renderBatch(const RenderBatch* batch);
+    void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
+    void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
 
     void processCommand(Allocator* allocator, MutableGraphicsMemory& memory, const Command* command);
     void processFrame(Allocator* allocator, MutableGraphicsMemory& memory, const Frame* frame);
