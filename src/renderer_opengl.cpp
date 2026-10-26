@@ -718,23 +718,9 @@ namespace renderer
         glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(entity->material.color));
         glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(entity->material.uvScale));
         glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.textureOffset));
+        glUniform1ui(descriptor->textureLayerLocation, entity->layer);
 
         glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);
-    }
-
-    bool setTextureLayer(MutableGraphicsMemory& memory, size_t locationsIndex, uint64_t layer)
-    {
-        const auto shaderLocations = memory.locationsDescriptors;
-        if (locationsIndex >= shaderLocations.size())
-        {
-            return false;
-        }
-
-        glUniform1ui(
-            (shaderLocations.data() + locationsIndex)->textureLayerLocation,
-            layer);
-
-        return true;
     }
 
     void freeBuffers(const MutableGraphicsMemory& memory)

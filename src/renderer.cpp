@@ -369,10 +369,29 @@ namespace renderer
             }
             case CommandType::SET_TEXTURE_LAYER:
             {
-                const auto* locationsIndex  = commandView.read_object<size_t>(0).data();
-                const auto* layer           = commandView.read_object<uint64_t>(sizeof(size_t)).data();
+                const auto* batchIndex  = commandView.read_object<size_t>(0).data();
+                const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
+                const auto* layer       = commandView.read_object<uint64_t>(2 * sizeof(size_t)).data();
 
-                setTextureLayer(memory, *locationsIndex, *layer);
+                if (*batchIndex >= *memory.renderBatchCount.data())
+                {
+                    break;
+                }
+
+                for (size_t i = 0; i < *batchIndex; ++i)
+                {
+                    batchCursor.step<RenderBatch>();
+                    const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+                    batchCursor.step_array<RenderEntity>(entities.size());
+                }
+
+                batchCursor.step<RenderBatch>();
+                const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+
+                RenderEntity* entity    = entities.data() + *entityIndex;
+                entity->layer           = *layer;
+
+                break;
             }
             default:
                 break;
