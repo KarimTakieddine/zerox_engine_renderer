@@ -284,13 +284,41 @@ namespace renderer
                 });
 
                 allocator->requestMemory<uint64_t>(*entityCount);
-                auto* entities = allocator->requestMemoryArray<RenderEntity>(*entityCount);
+                allocator->requestMemoryArray<RenderEntity>(*entityCount);
 
-                size_t* batchCount = memory.renderBatchCount.data();
+                ConstMemoryView meshView(memory.meshSpan);
+                MemoryCursor<16> meshCursor;
 
-                setVertexLayout(memory, *batchCount, *meshIndex);
+                const auto* meshCount = meshView.read_object<uint64_t>(meshCursor.getOffset()).data();
+                meshCursor.step<uint64_t>();
 
-                ++(*batchCount);
+                if (*meshIndex < *meshCount)
+                {
+                    for (size_t i = 0; i < *meshIndex; ++i)
+                    {
+                        meshCursor.step<MeshBufferIndices>();
+
+                        const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
+                        meshCursor.step_array<Vertex>(vertices.size());
+
+                        const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
+                        meshCursor.step_array<unsigned int>(triangles.size());
+                    }
+
+                    const auto* buffers = meshView.read_object<MeshBufferIndices>(meshCursor.getOffset()).data();
+                    meshCursor.step<MeshBufferIndices>();
+
+                    const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
+                    meshCursor.step_array<Vertex>(vertices.size());
+
+                    const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
+
+                    renderBatch->elementCount = triangles.size();
+
+                    setVertexLayout(renderBatch, memory.locationsDescriptors.data() + *locationsIndex, buffers);
+                }
+
+                ++(*memory.renderBatchCount.data());
 
                 break;
             }

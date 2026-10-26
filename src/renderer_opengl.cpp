@@ -519,9 +519,9 @@ namespace renderer
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    bool setVertexLayout(const MutableGraphicsMemory& memory, size_t batchIndex, size_t meshIndex)
+    void setVertexLayout(const RenderBatch* batch, const LocationsDescriptor* descriptor, const MeshBufferIndices* buffers)
     {
-        ConstMemoryView meshView(memory.meshSpan);
+        /*ConstMemoryView meshView(memory.meshSpan);
 
         MemoryCursor<MEMORY_ALIGNMENT> meshCursor;
         const auto meshCount = meshView.read_object<uint64_t>(meshCursor.getOffset());
@@ -555,13 +555,6 @@ namespace renderer
         MutableMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
 
-        const auto batchCount = memory.renderBatchCount;
-
-        if (batchIndex >= *batchCount.data())
-        {
-            return false;
-        }
-
         for (size_t i = 0; i < batchIndex; ++i)
         {
             batchCursor.step<RenderBatch>();
@@ -582,23 +575,21 @@ namespace renderer
             return false;
         }
 
-        const auto* locationsDescriptor = locationsDescriptors.data() + descriptorIndex;
+        const auto* locationsDescriptor = locationsDescriptors.data() + descriptorIndex;*/
 
         glUseProgram(batch->shaderProgram);
         glBindVertexArray(batch->vertexArray);
-        glBindBuffer(GL_ARRAY_BUFFER, bufferIndices->vertex);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, bufferIndices->triangle);
+        glBindBuffer(GL_ARRAY_BUFFER, buffers->vertex);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers->triangle);
 
-        glEnableVertexAttribArray(locationsDescriptor->positionLocation);
-        glVertexAttribPointer(locationsDescriptor->positionLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+        glEnableVertexAttribArray(descriptor->positionLocation);
+        glVertexAttribPointer(descriptor->positionLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
 
-        glEnableVertexAttribArray(locationsDescriptor->colorLocation);
-        glVertexAttribPointer(locationsDescriptor->colorLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(sizeof(glm::vec3)));
+        glEnableVertexAttribArray(descriptor->colorLocation);
+        glVertexAttribPointer(descriptor->colorLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(sizeof(glm::vec3)));
 
-        glEnableVertexAttribArray(locationsDescriptor->uvLocation);
-        glVertexAttribPointer(locationsDescriptor->uvLocation, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(2 * sizeof(glm::vec3)));
-
-        return true;
+        glEnableVertexAttribArray(descriptor->uvLocation);
+        glVertexAttribPointer(descriptor->uvLocation, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(2 * sizeof(glm::vec3)));
     }
 
     void renderBatch(const RenderBatch* batch)
