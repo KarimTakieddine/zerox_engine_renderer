@@ -4,7 +4,7 @@
 
 namespace renderer
 {
-    struct Transform
+    struct alignas(16) Transform
     {
         glm::mat4 localToWorld	{ 1.0f };
         glm::mat4 localRotation	{ 1.0f };
