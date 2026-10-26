@@ -255,11 +255,8 @@ namespace renderer
         renderBatches(memory, pixelsPerUnit);
     }
 
-    void processCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const Command* command)
+    void processCommand(Allocator* allocator, const Command* command)
     {
-        MutableMemoryView renderBatchView(memory.renderBatchSpan);
-        MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
-
         FixedSpan<std::byte, true, Command::DATA_SECTION_SIZE> commandSpan(command->data, Command::DATA_SECTION_SIZE);
         ConstMemoryView commandView(commandSpan);
 
@@ -267,6 +264,8 @@ namespace renderer
         {
             case CommandType::ALLOCATE_RENDER_BATCH:
             {
+                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
+
                 const auto* shaderProgramIndex  = commandView.read_object<size_t>(0).data();
                 const auto* vertexArrayIndex    = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* locationsIndex      = commandView.read_object<uint64_t>(2 * sizeof(size_t)).data();
@@ -297,6 +296,11 @@ namespace renderer
             }
             case CommandType::UPDATE_ENTITY_TRANSFORM:
             {
+                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
+
+                MutableMemoryView renderBatchView(memory.renderBatchSpan);
+                MemoryCursor<16> batchCursor;
+
                 const auto* batchIndex  = commandView.read_object<size_t>(0).data();
                 const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* transform   = commandView.read_object<Transform>(2 * sizeof(size_t)).data();
@@ -323,6 +327,11 @@ namespace renderer
             }
             case CommandType::UPDATE_ENTITY_MATERIAL:
             {
+                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
+
+                MutableMemoryView renderBatchView(memory.renderBatchSpan);
+                MemoryCursor<16> batchCursor;
+
                 const auto* batchIndex  = commandView.read_object<size_t>(0).data();
                 const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* material    = commandView.read_object<Material>(2 * sizeof(size_t)).data();
@@ -349,6 +358,8 @@ namespace renderer
             }
             case CommandType::SET_CAMERA_ASPECT_RATIO:
             {
+                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
+
                 const auto* width   = commandView.read_object<int>(0).data();
                 const auto* height  = commandView.read_object<int>(sizeof(int)).data();
                 
@@ -359,6 +370,11 @@ namespace renderer
             }
             case CommandType::SET_TEXTURE_LAYER:
             {
+                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
+
+                MutableMemoryView renderBatchView(memory.renderBatchSpan);
+                MemoryCursor<16> batchCursor;
+
                 const auto* batchIndex  = commandView.read_object<size_t>(0).data();
                 const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
                 const auto* layer       = commandView.read_object<uint64_t>(2 * sizeof(size_t)).data();
@@ -388,11 +404,11 @@ namespace renderer
         }
     }
 
-    void processFrame(Allocator* allocator, MutableGraphicsMemory& memory, const Frame* frame)
+    void processFrame(Allocator* allocator, const Frame* frame)
     {
         for (const auto& command : frame->renderCommands)
         {
-            processCommand(allocator, memory, &command);
+            processCommand(allocator, &command);
         }
     }
 

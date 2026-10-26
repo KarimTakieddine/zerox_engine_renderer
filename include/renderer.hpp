@@ -206,8 +206,8 @@ namespace renderer
     void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
     void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
 
-    void processCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const Command* command);
-    void processFrame(Allocator* allocator, MutableGraphicsMemory& memory, const Frame* frame);
+    void processCommand(Allocator* allocator, const Command* command);
+    void processFrame(Allocator* allocator, const Frame* frame);
 
     float getFovDegrees(const Camera* camera);
     glm::vec2 getViewportWorldDimensions(const Camera* camera, const Eye* eye, const Frustum* frustum);
