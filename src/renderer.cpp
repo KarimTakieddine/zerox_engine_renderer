@@ -6,6 +6,7 @@
 #include "frustum.h"
 #include "locations_descriptor.h"
 #include "mesh.hpp"
+#include "render_command_types.h"
 #include "render_entity.h"
 #include "render_frame.h"
 #include "renderer.hpp"
@@ -255,181 +256,130 @@ namespace renderer
         renderBatches(memory, pixelsPerUnit);
     }
 
+    void handleAllocateBatchCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    {
+        const auto* command = commandView.read_object<AllocateBatchCommand>(0).data();
+
+        auto* renderBatch = allocator->requestMemory<RenderBatch>(RenderBatch{
+            .descriptorIndex    = command->locationsIndex,
+            .shaderProgram      = memory.shaderPrograms.data()[command->shaderProgramIndex],
+            .vertexArray        = memory.vertexArrayObjects.data()[command->vertexArrayIndex],
+            .drawMode           = static_cast<DrawMode>(command->drawMode)
+        });
+
+        allocator->requestMemory<uint64_t>(command->entityCount);
+        allocator->requestMemoryArray<RenderEntity>(command->entityCount);
+
+        ConstMemoryView meshView(memory.meshSpan);
+        MemoryCursor<16> meshCursor;
+
+        const auto* meshCount = meshView.read_object<uint64_t>(meshCursor.getOffset()).data();
+        meshCursor.step<uint64_t>();
+
+        for (size_t i = 0; i < command->meshIndex; ++i)
+        {
+            meshCursor.step<MeshBufferIndices>();
+
+            const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
+            meshCursor.step_array<Vertex>(vertices.size());
+
+            const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
+            meshCursor.step_array<unsigned int>(triangles.size());
+        }
+
+        const auto* buffers = meshView.read_object<MeshBufferIndices>(meshCursor.getOffset()).data();
+        meshCursor.step<MeshBufferIndices>();
+
+        const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
+        meshCursor.step_array<Vertex>(vertices.size());
+
+        const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
+
+        renderBatch->elementCount = triangles.size();
+
+        setVertexLayout(
+            renderBatch,
+            memory.locationsDescriptors.data() + command->locationsIndex,
+            buffers);
+
+        ++(*memory.renderBatchCount.data());
+    }
+
+    void handleUpdateTransformCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    {
+        MutableMemoryView renderBatchView(memory.renderBatchSpan);
+        MemoryCursor<16> batchCursor;
+
+        const auto* command = commandView.read_object<UpdateTransformCommand>(0).data();
+
+        for (size_t i = 0; i < command->batchIndex; ++i)
+        {
+            batchCursor.step<RenderBatch>();
+            const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+            batchCursor.step_array<RenderEntity>(entities.size());
+        }
+
+        batchCursor.step<RenderBatch>();
+        const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+
+        (entities.data() + command->entityIndex)->transform = command->transform;
+    }
+
+    void handleUpdateMaterialCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    {
+        MutableMemoryView renderBatchView(memory.renderBatchSpan);
+        MemoryCursor<16> batchCursor;
+
+        const auto* command = commandView.read_object<UpdateMaterialCommand>(0).data();
+
+        for (size_t i = 0; i < command->batchIndex; ++i)
+        {
+            batchCursor.step<RenderBatch>();
+            const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+            batchCursor.step_array<RenderEntity>(entities.size());
+        }
+
+        batchCursor.step<RenderBatch>();
+        const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+
+        (entities.data() + command->entityIndex)->material = command->material;
+    }
+
+    void handleSetClientAreaCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    {
+        const auto* command = commandView.read_object<SetClientAreaCommand>(0).data();
+
+        const int width     = static_cast<int>(command->width);
+        const int height    = static_cast<int>(command->height);
+
+        setViewportArea(width, height);
+        setCameraAspectRatio(memory, width, height);
+    }
+
+    void handleSetTextureLayerCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    {
+        MutableMemoryView renderBatchView(memory.renderBatchSpan);
+        MemoryCursor<16> batchCursor;
+
+        const auto* command = commandView.read_object<SetTextureLayerCommand>(0).data();
+
+        for (size_t i = 0; i < command->batchIndex; ++i)
+        {
+            batchCursor.step<RenderBatch>();
+            const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+            batchCursor.step_array<RenderEntity>(entities.size());
+        }
+
+        batchCursor.step<RenderBatch>();
+        const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+
+        (entities.data() + command->entityIndex)->layer = command->layer;
+    }
+
     void processCommand(Allocator* allocator, const Command* command)
     {
         FixedSpan<std::byte, true, Command::DATA_SECTION_SIZE> commandSpan(command->data, Command::DATA_SECTION_SIZE);
-        ConstMemoryView commandView(commandSpan);
-
-        switch (command->type)
-        {
-            case CommandType::ALLOCATE_RENDER_BATCH:
-            {
-                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
-
-                const auto* shaderProgramIndex  = commandView.read_object<size_t>(0).data();
-                const auto* vertexArrayIndex    = commandView.read_object<size_t>(sizeof(size_t)).data();
-                const auto* locationsIndex      = commandView.read_object<uint64_t>(2 * sizeof(size_t)).data();
-                const auto* meshIndex           = commandView.read_object<size_t>(2 * sizeof(size_t) + sizeof(uint64_t)).data();
-                const auto* entityCount         = commandView.read_object<size_t>(3 * sizeof(size_t) + sizeof(uint64_t)).data();
-                const auto* drawMode            = commandView.read_object<DrawMode>(4 * sizeof(size_t) + sizeof(uint64_t)).data();
-
-                const auto shaderPrograms   = memory.shaderPrograms;
-                const auto vertexArrays     = memory.vertexArrayObjects;
-
-                auto* renderBatch = allocator->requestMemory<RenderBatch>(RenderBatch{
-                    .descriptorIndex    = *locationsIndex,
-                    .shaderProgram      = *shaderProgramIndex >= shaderPrograms.size() ? 0 : shaderPrograms.data()[*shaderProgramIndex],
-                    .vertexArray        = *vertexArrayIndex >= vertexArrays.size() ? 0 : vertexArrays.data()[*vertexArrayIndex],
-                    .drawMode           = *drawMode
-                });
-
-                allocator->requestMemory<uint64_t>(*entityCount);
-                allocator->requestMemoryArray<RenderEntity>(*entityCount);
-
-                ConstMemoryView meshView(memory.meshSpan);
-                MemoryCursor<16> meshCursor;
-
-                const auto* meshCount = meshView.read_object<uint64_t>(meshCursor.getOffset()).data();
-                meshCursor.step<uint64_t>();
-
-                if (*meshIndex < *meshCount)
-                {
-                    for (size_t i = 0; i < *meshIndex; ++i)
-                    {
-                        meshCursor.step<MeshBufferIndices>();
-
-                        const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
-                        meshCursor.step_array<Vertex>(vertices.size());
-
-                        const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
-                        meshCursor.step_array<unsigned int>(triangles.size());
-                    }
-
-                    const auto* buffers = meshView.read_object<MeshBufferIndices>(meshCursor.getOffset()).data();
-                    meshCursor.step<MeshBufferIndices>();
-
-                    const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
-                    meshCursor.step_array<Vertex>(vertices.size());
-
-                    const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
-
-                    renderBatch->elementCount = triangles.size();
-
-                    setVertexLayout(renderBatch, memory.locationsDescriptors.data() + *locationsIndex, buffers);
-                }
-
-                ++(*memory.renderBatchCount.data());
-
-                break;
-            }
-            case CommandType::UPDATE_ENTITY_TRANSFORM:
-            {
-                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
-
-                MutableMemoryView renderBatchView(memory.renderBatchSpan);
-                MemoryCursor<16> batchCursor;
-
-                const auto* batchIndex  = commandView.read_object<size_t>(0).data();
-                const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
-                const auto* transform   = commandView.read_object<Transform>(2 * sizeof(size_t)).data();
-
-                if (*batchIndex >= *memory.renderBatchCount.data())
-                {
-                    break;
-                }
-
-                for (size_t i = 0; i < *batchIndex; ++i)
-                {
-                    batchCursor.step<RenderBatch>();
-                    const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-                    batchCursor.step_array<RenderEntity>(entities.size());
-                }
-
-                batchCursor.step<RenderBatch>();
-                const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-
-                RenderEntity* entity    = entities.data() + *entityIndex;
-                entity->transform       = *transform;
-
-                break;
-            }
-            case CommandType::UPDATE_ENTITY_MATERIAL:
-            {
-                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
-
-                MutableMemoryView renderBatchView(memory.renderBatchSpan);
-                MemoryCursor<16> batchCursor;
-
-                const auto* batchIndex  = commandView.read_object<size_t>(0).data();
-                const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
-                const auto* material    = commandView.read_object<Material>(2 * sizeof(size_t)).data();
-
-                if (*batchIndex >= *memory.renderBatchCount.data())
-                {
-                    break;
-                }
-
-                for (size_t i = 0; i < *batchIndex; ++i)
-                {
-                    batchCursor.step<RenderBatch>();
-                    const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-                    batchCursor.step_array<RenderEntity>(entities.size());
-                }
-
-                batchCursor.step<RenderBatch>();
-                const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-
-                RenderEntity* entity    = entities.data() + *entityIndex;
-                entity->material        = *material;
-
-                break;
-            }
-            case CommandType::SET_CAMERA_ASPECT_RATIO:
-            {
-                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
-
-                const auto* width   = commandView.read_object<int>(0).data();
-                const auto* height  = commandView.read_object<int>(sizeof(int)).data();
-                
-                setViewportArea(*width, *height);
-                setCameraAspectRatio(memory, *width, *height);
-
-                break;
-            }
-            case CommandType::SET_TEXTURE_LAYER:
-            {
-                MutableGraphicsMemory memory = readGraphicsMemory(allocator);
-
-                MutableMemoryView renderBatchView(memory.renderBatchSpan);
-                MemoryCursor<16> batchCursor;
-
-                const auto* batchIndex  = commandView.read_object<size_t>(0).data();
-                const auto* entityIndex = commandView.read_object<size_t>(sizeof(size_t)).data();
-                const auto* layer       = commandView.read_object<uint64_t>(2 * sizeof(size_t)).data();
-
-                if (*batchIndex >= *memory.renderBatchCount.data())
-                {
-                    break;
-                }
-
-                for (size_t i = 0; i < *batchIndex; ++i)
-                {
-                    batchCursor.step<RenderBatch>();
-                    const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-                    batchCursor.step_array<RenderEntity>(entities.size());
-                }
-
-                batchCursor.step<RenderBatch>();
-                const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-
-                RenderEntity* entity    = entities.data() + *entityIndex;
-                entity->layer           = *layer;
-
-                break;
-            }
-            default:
-                break;
-        }
+        commandDispatchTable[static_cast<size_t>(command->type)](allocator, readGraphicsMemory(allocator), ConstMemoryView(commandSpan));
     }
 
     void processFrame(Allocator* allocator, const Frame* frame)

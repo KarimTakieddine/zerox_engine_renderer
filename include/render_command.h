@@ -12,8 +12,9 @@ namespace renderer
         ALLOCATE_RENDER_BATCH   = 1,
         UPDATE_ENTITY_MATERIAL  = 2,
         UPDATE_ENTITY_TRANSFORM = 3,
-        SET_CAMERA_ASPECT_RATIO = 4,
-        SET_TEXTURE_LAYER       = 5
+        SET_CLIENT_AREA         = 4,
+        SET_TEXTURE_LAYER       = 5,
+        LAST                    = SET_TEXTURE_LAYER
     };
 
     enum class CommandFlags : unsigned char

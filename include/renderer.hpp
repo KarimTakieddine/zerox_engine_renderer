@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <memory>
 
 #include <bump_allocator.hpp>
@@ -205,6 +206,24 @@ namespace renderer
     void renderBatch(const RenderBatch* batch);
     void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
     void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
+
+    inline void handleUnknownCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView) { /* TODO(Karim) : Maybe throw? */ }
+    void handleAllocateBatchCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
+    void handleUpdateTransformCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
+    void handleUpdateMaterialCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
+    void handleSetClientAreaCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
+    void handleSetTextureLayerCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
+
+    using CommandHandlerFunc = void (*)(Allocator* allocator, const MutableGraphicsMemory&, const ConstMemoryView& commandView);
+
+    inline constexpr CommandHandlerFunc commandDispatchTable[6] = {
+        &handleUnknownCommand,
+        &handleAllocateBatchCommand,
+        &handleUpdateTransformCommand,
+        &handleUpdateMaterialCommand,
+        &handleSetClientAreaCommand,
+        &handleSetTextureLayerCommand
+    };
 
     void processCommand(Allocator* allocator, const Command* command);
     void processFrame(Allocator* allocator, const Frame* frame);
