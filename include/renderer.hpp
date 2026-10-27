@@ -195,6 +195,7 @@ namespace renderer
     void setTextureParameters(unsigned int texture, unsigned int target, const TextureData* parameters, bool unbind = false);
     void initializeRenderBuffer(RenderBuffer* buffer);
     void destroyRenderBuffer(const RenderBuffer* buffer);
+    void bindRenderBuffer(const RenderBuffer* buffer);
 
 
     void freeBuffers(const MutableGraphicsMemory& memory);
