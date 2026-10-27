@@ -23,6 +23,7 @@ namespace renderer
     struct Shader;
     struct Frame;
     struct Command;
+    struct RenderBuffer;
     struct Texture;
 
     static constexpr size_t ALLOCATOR_SIZE      = 1 << 13;
@@ -191,6 +192,9 @@ namespace renderer
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
     void setVertexLayout(const RenderBatch* batch, const LocationsDescriptor* descriptor, const MeshBufferIndices* buffers);
     void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config);
+    void setTextureParameters(unsigned int texture, unsigned int target, const TextureData* parameters, bool unbind = false);
+    void initializeRenderBuffer(RenderBuffer* buffer);
+    void destroyRenderBuffer(const RenderBuffer* buffer);
 
 
     void freeBuffers(const MutableGraphicsMemory& memory);

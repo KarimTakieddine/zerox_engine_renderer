@@ -8,6 +8,7 @@
 
 #include "locations_descriptor.h"
 #include "opengl_allocator.h"
+#include "render_buffer.h"
 #include "render_entity.h"
 #include "renderer.hpp"
 #include "shader.h"
@@ -120,11 +121,7 @@ namespace renderer
 
             const auto& textureData = texture->data;
 
-            glBindTexture(GL_TEXTURE_2D, *(textureObjects.data() + i));
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, ::wrapModeToGLenum(textureData.wrapModeS));
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, ::wrapModeToGLenum(textureData.wrapModeT));
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, ::filterToGLenum(textureData.minFilter));
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, ::filterToGLenum(textureData.magFilter));
+            setTextureParameters(*(textureObjects.data() + i), GL_TEXTURE_2D, &textureData);
 
             const GLenum format = ::imageFormatToGLenum(image->getFormat());
 
@@ -144,17 +141,12 @@ namespace renderer
             return false;
         }
 
-        glBindTexture(GL_TEXTURE_2D_ARRAY, *(textures.data() + textureIndex));
+        setTextureParameters(*(textures.data() + textureIndex), GL_TEXTURE_2D_ARRAY, &data);
 
         glTexStorage3D(
             GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8,
             data.width, data.height,
             static_cast<GLsizei>(textureCount));
-
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, ::wrapModeToGLenum(data.wrapModeS));
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, ::wrapModeToGLenum(data.wrapModeT));
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, ::filterToGLenum(data.minFilter));
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, ::filterToGLenum(data.magFilter));
 
         for (size_t i = 0; i < textureCount; ++i)
         {
@@ -521,62 +513,6 @@ namespace renderer
 
     void setVertexLayout(const RenderBatch* batch, const LocationsDescriptor* descriptor, const MeshBufferIndices* buffers)
     {
-        /*ConstMemoryView meshView(memory.meshSpan);
-
-        MemoryCursor<MEMORY_ALIGNMENT> meshCursor;
-        const auto meshCount = meshView.read_object<uint64_t>(meshCursor.getOffset());
-
-        if (meshIndex >= *meshCount.data())
-        {
-            return false;
-        }
-
-        meshCursor.step<uint64_t>();
-
-        for (size_t i = 0; i < meshIndex; ++i)
-        {
-            meshCursor.step<MeshBufferIndices>();
-
-            const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
-            meshCursor.step_array<Vertex>(vertices.size());
-
-            const auto triangles = meshView.read_contiguous_array<GLuint>(meshCursor.getOffset());
-            meshCursor.step_array<GLuint>(triangles.size());
-        }
-
-        const auto* bufferIndices = meshView.read_object<MeshBufferIndices>(meshCursor.getOffset()).data();
-        meshCursor.step<MeshBufferIndices>();
-
-        const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
-        meshCursor.step_array<Vertex>(vertices.size());
-
-        const auto triangles = meshView.read_contiguous_array<GLuint>(meshCursor.getOffset());
-
-        MutableMemoryView renderBatchView(memory.renderBatchSpan);
-        MemoryCursor<MEMORY_ALIGNMENT> batchCursor;
-
-        for (size_t i = 0; i < batchIndex; ++i)
-        {
-            batchCursor.step<RenderBatch>();
-
-            auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-            batchCursor.step_array<RenderEntity>(entities.size());
-        }
-
-        auto* batch = renderBatchView.read_object<RenderBatch>(batchCursor.getOffset()).data();
-
-        batch->elementCount = static_cast<int>(triangles.size());
-
-        const auto locationsDescriptors = memory.locationsDescriptors;
-        const size_t descriptorIndex    = batch->descriptorIndex;
-
-        if (descriptorIndex >= locationsDescriptors.size())
-        {
-            return false;
-        }
-
-        const auto* locationsDescriptor = locationsDescriptors.data() + descriptorIndex;*/
-
         glUseProgram(batch->shaderProgram);
         glBindVertexArray(batch->vertexArray);
         glBindBuffer(GL_ARRAY_BUFFER, buffers->vertex);
@@ -590,6 +526,32 @@ namespace renderer
 
         glEnableVertexAttribArray(descriptor->uvLocation);
         glVertexAttribPointer(descriptor->uvLocation, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(2 * sizeof(glm::vec3)));
+    }
+
+    void setTextureParameters(unsigned int texture, unsigned int target, const TextureData* parameters, bool unbind /* = false */)
+    {
+        glBindTexture(target, texture);
+        glTexParameteri(target, GL_TEXTURE_WRAP_S, ::wrapModeToGLenum(parameters->wrapModeS));
+        glTexParameteri(target, GL_TEXTURE_WRAP_T, ::wrapModeToGLenum(parameters->wrapModeT));
+        glTexParameteri(target, GL_TEXTURE_MIN_FILTER, ::filterToGLenum(parameters->minFilter));
+        glTexParameteri(target, GL_TEXTURE_MAG_FILTER, ::filterToGLenum(parameters->magFilter));
+
+        if (unbind)
+        {
+            glBindTexture(target, 0);
+        }
+    }
+
+    void initializeRenderBuffer(RenderBuffer* buffer)
+    {
+        glGenTextures(1, &buffer->textureHandle);
+        glGenFramebuffers(1, &buffer->frameBufferHandle);
+    }
+
+    void destroyRenderBuffer(const RenderBuffer* buffer)
+    {
+        glDeleteFramebuffers(1, &buffer->frameBufferHandle);
+        glDeleteTextures(1, &buffer->textureHandle);
     }
 
     void renderBatch(const RenderBatch* batch)
