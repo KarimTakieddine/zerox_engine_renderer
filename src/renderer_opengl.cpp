@@ -398,6 +398,7 @@ namespace renderer
         locationsDescriptor->transformLocation      = glGetUniformLocation(shaderProgram, "transform");
         locationsDescriptor->materialColorLocation  = glGetUniformLocation(shaderProgram, "materialColor");
         locationsDescriptor->textureOffsetLocation  = glGetUniformLocation(shaderProgram, "textureOffset");
+        locationsDescriptor->tileSizeLocation       = glGetUniformLocation(shaderProgram, "tileSize");
         locationsDescriptor->textureLayerLocation   = glGetUniformLocation(shaderProgram, "layer");
 
         return true;
@@ -582,10 +583,18 @@ namespace renderer
             entityTransform.localRotation,
             entityTransform.localScale
         };
+        
+        const ZeroXBridge::Material& material = entity->material;
+
+        const GLuint tileSize[2] = {
+            static_cast<GLuint>(material.tileSizeX),
+            static_cast<GLuint>(material.tileSizeY)
+        };
 
         glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, &transformMatrices[0][0].x);
         glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(entity->material.color));
         glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(entity->material.uvScale));
+        glUniform2ui(descriptor->tileSizeLocation, static_cast<GLuint>(material.tileSizeX), static_cast<GLuint>(material.tileSizeY));
         glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.uvOffset));
         glUniform1ui(descriptor->textureLayerLocation, entity->layer);
 

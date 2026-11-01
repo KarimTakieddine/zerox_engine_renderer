@@ -11,6 +11,7 @@ namespace renderer
         int transformLocation       { -1 };
         int materialColorLocation   { -1 };
         int textureOffsetLocation   { -1 };
+        int tileSizeLocation        { -1 };
         int textureLayerLocation    { -1 };
     };
 }
