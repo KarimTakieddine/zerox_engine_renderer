@@ -586,16 +586,11 @@ namespace renderer
         
         const ZeroXBridge::Material& material = entity->material;
 
-        const GLuint tileSize[2] = {
-            static_cast<GLuint>(material.tileSizeX),
-            static_cast<GLuint>(material.tileSizeY)
-        };
-
         glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, &transformMatrices[0][0].x);
-        glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(entity->material.color));
-        glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(entity->material.uvScale));
+        glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(material.color));
+        glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(material.uvScale));
         glUniform2ui(descriptor->tileSizeLocation, static_cast<GLuint>(material.tileSizeX), static_cast<GLuint>(material.tileSizeY));
-        glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.uvOffset));
+        glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(material.uvOffset));
         glUniform1ui(descriptor->textureLayerLocation, entity->layer);
 
         glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);
