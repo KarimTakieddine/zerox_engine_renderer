@@ -1,13 +1,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
 
+#include <zerox_render_entity.h>
+
 #include "camera.h"
 #include "eye.h"
 #include "frustum.h"
 #include "locations_descriptor.h"
 #include "mesh.hpp"
 #include "render_command_types.h"
-#include "render_entity.h"
 #include "render_frame.h"
 #include "renderer.hpp"
 #include "shader.h"
@@ -233,8 +234,8 @@ namespace renderer
             const auto batch = renderBatchView.read_object<RenderBatch>(renderBatchCursor.getOffset());
             renderBatchCursor.step<RenderBatch>();
 
-            const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(renderBatchCursor.getOffset());
-            renderBatchCursor.step_array<RenderEntity>(entities.size());
+            const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(renderBatchCursor.getOffset());
+            renderBatchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
 
             renderBatch(batch.data());
 
@@ -268,7 +269,7 @@ namespace renderer
         });
 
         allocator->requestMemory<uint64_t>(command->entityCount);
-        allocator->requestMemoryArray<RenderEntity>(command->entityCount);
+        allocator->requestMemoryArray<ZeroXBridge::RenderEntity>(command->entityCount);
 
         ConstMemoryView meshView(memory.meshSpan);
         MemoryCursor<16> meshCursor;
@@ -315,12 +316,12 @@ namespace renderer
         for (size_t i = 0; i < command->batchIndex; ++i)
         {
             batchCursor.step<RenderBatch>();
-            const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-            batchCursor.step_array<RenderEntity>(entities.size());
+            const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
+            batchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
         }
 
         batchCursor.step<RenderBatch>();
-        const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+        const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
 
         (entities.data() + command->entityIndex)->transform = command->transform;
     }
@@ -335,12 +336,12 @@ namespace renderer
         for (size_t i = 0; i < command->batchIndex; ++i)
         {
             batchCursor.step<RenderBatch>();
-            const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-            batchCursor.step_array<RenderEntity>(entities.size());
+            const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
+            batchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
         }
 
         batchCursor.step<RenderBatch>();
-        const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+        const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
 
         (entities.data() + command->entityIndex)->material = command->material;
     }
@@ -366,12 +367,12 @@ namespace renderer
         for (size_t i = 0; i < command->batchIndex; ++i)
         {
             batchCursor.step<RenderBatch>();
-            const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
-            batchCursor.step_array<RenderEntity>(entities.size());
+            const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
+            batchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
         }
 
         batchCursor.step<RenderBatch>();
-        const auto entities = renderBatchView.read_contiguous_array<RenderEntity>(batchCursor.getOffset());
+        const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
 
         (entities.data() + command->entityIndex)->layer = command->layer;
     }

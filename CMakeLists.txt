@@ -17,6 +17,9 @@ if (NOT DEFINED PLATFORM_DIR)
     set(PLATFORM_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../zerox_engine/zerox_engine_platform")
 endif()
 
+list(APPEND CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../zerox_memory_bridge/install")
+find_package(zerox_memory_bridge CONFIG REQUIRED)
+
 add_subdirectory(${GLAD_DIR})
 
 list(APPEND SOURCES
@@ -26,12 +29,6 @@ list(APPEND SOURCES
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-if (WIN32)
-    add_subdirectory(glm)
-elseif (LINUX)
-    find_package(glm 1.0 REQUIRED)
-endif()
-
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${INCLUDE_DIR}
     "${MEMORY_READER_DIR}/${INCLUDE_DIR}"
@@ -39,7 +36,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     "${GLAD_DIR}/${INCLUDE_DIR}")
 
 if (WIN32)
-    target_link_libraries(${PROJECT_NAME} PUBLIC opengl32 zerox_engine_glad zerox_engine_platform glm::glm)
+    target_link_libraries(${PROJECT_NAME} PUBLIC opengl32 zerox_engine_glad zerox_engine_platform zerox_memory_bridge::zerox_memory_bridge)
 elseif(LINUX)
-    target_link_libraries(${PROJECT_NAME} PUBLIC GL zerox_engine_glad zerox_engine_platform glm::glm)
+    target_link_libraries(${PROJECT_NAME} PUBLIC GL zerox_engine_glad zerox_engine_platform zerox_memory_bridge::zerox_memory_bridge)
 endif()

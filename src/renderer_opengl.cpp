@@ -5,11 +5,11 @@
 #include <memory_view.hpp>
 
 #include <platform.h>
+#include <zerox_render_entity.h>
 
 #include "locations_descriptor.h"
 #include "opengl_allocator.h"
 #include "render_buffer.h"
-#include "render_entity.h"
 #include "renderer.hpp"
 #include "shader.h"
 #include "texture.h"
@@ -567,9 +567,9 @@ namespace renderer
         glBindVertexArray(batch->vertexArray);
     }
 
-    void renderEntity(const RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit)
+    void renderEntity(const ZeroXBridge::RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit)
     {
-        const Transform& entityTransform = entity->transform;
+        const ZeroXBridge::Transform& entityTransform = entity->transform;
 
         glm::mat4 entityLocalToWorld    = entityTransform.localToWorld;
         glm::vec4& position             = entityLocalToWorld[3];
@@ -586,7 +586,7 @@ namespace renderer
         glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, &transformMatrices[0][0].x);
         glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(entity->material.color));
         glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(entity->material.uvScale));
-        glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.textureOffset));
+        glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(entity->material.uvOffset));
         glUniform1ui(descriptor->textureLayerLocation, entity->layer);
 
         glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);

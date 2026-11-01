@@ -3,10 +3,11 @@
 #include <cstdint>
 #include <cstddef>
 
-#include "material.h"
+#include <zerox_material.h>
+#include <zerox_transform.h>
+
 #include "render_batch.h"
 #include "render_command.h"
-#include "transform.h"
 
 namespace renderer
 {
@@ -22,14 +23,14 @@ namespace renderer
 
     struct alignas(16) UpdateMaterialCommand
     {
-        Material material;
+        ZeroXBridge::Material material;
         uint64_t batchIndex { 0 };
         uint64_t entityIndex{ 0 };
     };
 
     struct alignas(16) UpdateTransformCommand
     {
-        Transform transform;
+        ZeroXBridge::Transform transform;
         uint64_t batchIndex { 0 };
         uint64_t entityIndex{ 0 };
     };
