@@ -132,7 +132,7 @@ namespace renderer
         return true;
     }
 
-    bool uploadTextureArray(const ConstGraphicsMemory& memory, const Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles)
+    bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles)
     {
         const auto textures = memory.textures;
         if (textureIndex >= textures.size())
@@ -140,13 +140,11 @@ namespace renderer
             return false;
         }
 
-        const ZeroXBridge::Texture& data = texture.data;
-
-        setTextureParameters(*(textures.data() + textureIndex), GL_TEXTURE_2D_ARRAY, &data);
+        setTextureParameters(*(textures.data() + textureIndex), GL_TEXTURE_2D_ARRAY, &texture);
 
         glTexStorage3D(
             GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8,
-            data.width, data.height,
+            texture.width, texture.height,
             static_cast<GLsizei>(textureCount));
 
         for (size_t i = 0; i < textureCount; ++i)
@@ -158,7 +156,7 @@ namespace renderer
                 return false;
             }
 
-            if (image->getWidth() != data.width || image->getHeight() != data.height)
+            if (image->getWidth() != texture.width || image->getHeight() != texture.height)
             {
                 return false;
             }
@@ -166,7 +164,7 @@ namespace renderer
             glTexSubImage3D(
                 GL_TEXTURE_2D_ARRAY, 0,
                 0, 0, i,
-                data.width, data.height, 1,
+                texture.width, texture.height, 1,
                 ::imageFormatToGLenum(image->getFormat()), GL_UNSIGNED_BYTE, image->getData());
         }
 
