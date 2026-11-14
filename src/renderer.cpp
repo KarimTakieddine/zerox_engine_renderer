@@ -193,8 +193,8 @@ namespace renderer
                 graphicsMemory,
                 textureArray->data,
                 config->textureCount + i,
-                textureArray->imageCount,
-                textureArray->imageFiles);
+                textureArray->textureCount,
+                textureArray->paths);
         }
 
         uploadMeshes(graphicsMemory);

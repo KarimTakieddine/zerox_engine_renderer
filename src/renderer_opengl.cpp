@@ -12,7 +12,6 @@
 #include "render_buffer.h"
 #include "renderer.hpp"
 #include "shader.h"
-#include "texture.h"
 #include "uniform_buffer_segment.h"
 
 namespace
@@ -20,8 +19,8 @@ namespace
     constexpr size_t MAX_SHADER_FILE_SIZE = 1 << 10;
 
     using renderer::DrawMode;
-    using renderer::Filter;
-    using renderer::WrapMode;
+    using ZeroXBridge::TextureFilter;
+    using ZeroXBridge::TextureWrapMode;
 
     constexpr GLenum drawModeToGLenum(DrawMode drawMode)
     {
@@ -32,24 +31,24 @@ namespace
         default:                    return GL_NONE;
         }
     }
-    
-    constexpr GLenum wrapModeToGLenum(WrapMode wrapMode)
+
+    constexpr GLenum wrapModeToGLenum(TextureWrapMode wrapMode)
     {
         switch (wrapMode)
         {
-        case WrapMode::REPEAT:          return GL_REPEAT;
-        case WrapMode::CLAMP_TO_EDGE:   return GL_CLAMP_TO_EDGE;
-        case WrapMode::CLAMP_TO_BORDER: return GL_CLAMP_TO_BORDER;
-        default:                        return GL_NONE;
+        case TextureWrapMode::REPEAT:          return GL_REPEAT;
+        case TextureWrapMode::CLAMP_TO_EDGE:   return GL_CLAMP_TO_EDGE;
+        case TextureWrapMode::CLAMP_TO_BORDER: return GL_CLAMP_TO_BORDER;
+        default:                                return GL_NONE;
         }
     }
 
-    constexpr GLenum filterToGLenum(Filter filter)
+    constexpr GLenum filterToGLenum(TextureFilter filter)
     {
         switch (filter)
         {
-        case Filter::NEAREST:           return GL_NEAREST;
-        case Filter::LINEAR:            return GL_LINEAR;
+        case TextureFilter::NEAREST:    return GL_NEAREST;
+        case TextureFilter::LINEAR:     return GL_LINEAR;
         default:                        return GL_NONE;
         }
     }
@@ -133,13 +132,15 @@ namespace renderer
         return true;
     }
 
-    bool uploadTextureArray(const ConstGraphicsMemory& memory, const TextureData& data, size_t textureIndex, size_t textureCount, const char* const* imageFiles)
+    bool uploadTextureArray(const ConstGraphicsMemory& memory, const Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles)
     {
         const auto textures = memory.textures;
         if (textureIndex >= textures.size())
         {
             return false;
         }
+
+        const ZeroXBridge::Texture& data = texture.data;
 
         setTextureParameters(*(textures.data() + textureIndex), GL_TEXTURE_2D_ARRAY, &data);
 
@@ -529,7 +530,7 @@ namespace renderer
         glVertexAttribPointer(descriptor->uvLocation, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(2 * sizeof(glm::vec3)));
     }
 
-    void setTextureParameters(unsigned int texture, unsigned int target, const TextureData* parameters, bool unbind /* = false */)
+    void setTextureParameters(unsigned int texture, unsigned int target, const ZeroXBridge::Texture* parameters, bool unbind /* = false */)
     {
         glBindTexture(target, texture);
         glTexParameteri(target, GL_TEXTURE_WRAP_S, ::wrapModeToGLenum(parameters->wrapModeS));

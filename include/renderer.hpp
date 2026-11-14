@@ -9,10 +9,11 @@
 #include <memory_cursor.hpp>
 #include <memory_view.hpp>
 
+#include <zerox_texture.h>
+
 #include "graphics_memory.hpp"
 #include "mesh_span.hpp"
 #include "render_batch.h"
-#include "texture_array.h"
 
 namespace ZeroXBridge
 {
@@ -28,7 +29,6 @@ namespace renderer
     struct Frame;
     struct Command;
     struct RenderBuffer;
-    struct Texture;
 
     static constexpr size_t ALLOCATOR_SIZE      = 1 << 13;
     static constexpr uint64_t MEMORY_ALIGNMENT  = 16;
@@ -46,6 +46,19 @@ namespace renderer
     {
         size_t locationsIndex       { 0 };
         size_t shaderProgramIndex   { 0 };
+    };
+
+    struct alignas(16) TextureArray
+    {
+        ZeroXBridge::Texture data;
+        const char* const* paths{ nullptr };
+        size_t textureCount     { 0 };
+    };
+
+    struct Texture
+    {
+        ZeroXBridge::Texture data;
+        const char* path{ nullptr };
     };
 
     struct GraphicsConfig
@@ -178,7 +191,7 @@ namespace renderer
     void generateVertexArrays(const MutableGraphicsMemory& memory);
     void generateTextures(const MutableGraphicsMemory& memory);
     bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const Texture* textures);
-    bool uploadTextureArray(const ConstGraphicsMemory& memory, const TextureData& data, size_t textureIndex, size_t textureCount, const char* const* imageFiles);
+    bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles);
     bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders);
     void generateShaderPrograms(const MutableGraphicsMemory& memory);
     bool compileShaderProgram(const MutableGraphicsMemory& memory, size_t index, size_t count, const size_t* indices);
@@ -196,7 +209,7 @@ namespace renderer
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
     void setVertexLayout(const RenderBatch* batch, const LocationsDescriptor* descriptor, const MeshBufferIndices* buffers);
     void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config);
-    void setTextureParameters(unsigned int texture, unsigned int target, const TextureData* parameters, bool unbind = false);
+    void setTextureParameters(unsigned int texture, unsigned int target, const ZeroXBridge::Texture* parameters, bool unbind = false);
     void initializeRenderBuffer(RenderBuffer* buffer);
     void destroyRenderBuffer(const RenderBuffer* buffer);
     void bindRenderBuffer(const RenderBuffer* buffer);
