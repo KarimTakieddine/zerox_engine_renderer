@@ -4,6 +4,7 @@
 #include <cstddef>
 
 #include <zerox_material.h>
+#include <zerox_texture.h>
 #include <zerox_transform.h>
 
 #include "render_batch.h"
@@ -49,5 +50,26 @@ namespace renderer
 
     private:
         uint64_t reserved   { 0 };
+    };
+
+    inline constexpr size_t IMAGE_PATH_SIZE{ 240 };
+
+    struct alignas(16) UploadTextureCommand
+    {
+        char path[IMAGE_PATH_SIZE];
+
+        ZeroXBridge::Texture texture;
+    };
+
+    inline constexpr size_t IMAGE_PATH_ENTRY_SIZE   { 32 };
+    inline constexpr size_t MAX_TEXTURE_ARRAY_PATHS { 7 };
+
+    struct UploadTextureArrayCommand
+    {
+        char paths[MAX_TEXTURE_ARRAY_PATHS][IMAGE_PATH_ENTRY_SIZE];
+
+        ZeroXBridge::Texture texture;
+        uint64_t textureCount   { 0 };
+        uint64_t reserved       { 0 };
     };
 }

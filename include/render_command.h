@@ -14,7 +14,9 @@ namespace renderer
         UPDATE_ENTITY_MATERIAL  = 3,
         SET_CLIENT_AREA         = 4,
         SET_TEXTURE_LAYER       = 5,
-        LAST                    = SET_TEXTURE_LAYER
+        UPLOAD_TEXTURE          = 6,
+        UPLOAD_TEXTURE_ARRAY    = 7,
+        LAST                    = UPLOAD_TEXTURE_ARRAY
     };
 
     enum class CommandFlags : unsigned char
