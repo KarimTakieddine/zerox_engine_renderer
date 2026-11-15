@@ -9,7 +9,6 @@
 #include "locations_descriptor.h"
 #include "mesh.hpp"
 #include "render_command_types.h"
-#include "render_frame.h"
 #include "renderer.hpp"
 #include "shader.h"
 #include "uniform_buffer_segment.h"
@@ -257,19 +256,17 @@ namespace renderer
         renderBatches(memory, pixelsPerUnit);
     }
 
-    void handleAllocateBatchCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    void handleAllocateBatchCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const AllocateBatchCommand& command)
     {
-        const auto* command = commandView.read_object<AllocateBatchCommand>(0).data();
-
         auto* renderBatch = allocator->requestMemory<RenderBatch>(RenderBatch{
-            .descriptorIndex    = command->locationsIndex,
-            .shaderProgram      = memory.shaderPrograms.data()[command->shaderProgramIndex],
-            .vertexArray        = memory.vertexArrayObjects.data()[command->vertexArrayIndex],
-            .drawMode           = static_cast<DrawMode>(command->drawMode)
+            .descriptorIndex    = command.locationsIndex,
+            .shaderProgram      = memory.shaderPrograms.data()[command.shaderProgramIndex],
+            .vertexArray        = memory.vertexArrayObjects.data()[command.vertexArrayIndex],
+            .drawMode           = static_cast<DrawMode>(command.drawMode)
         });
 
-        allocator->requestMemory<uint64_t>(command->entityCount);
-        allocator->requestMemoryArray<ZeroXBridge::RenderEntity>(command->entityCount);
+        allocator->requestMemory<uint64_t>(command.entityCount);
+        allocator->requestMemoryArray<ZeroXBridge::RenderEntity>(command.entityCount);
 
         ConstMemoryView meshView(memory.meshSpan);
         MemoryCursor<16> meshCursor;
@@ -277,7 +274,7 @@ namespace renderer
         const auto* meshCount = meshView.read_object<uint64_t>(meshCursor.getOffset()).data();
         meshCursor.step<uint64_t>();
 
-        for (size_t i = 0; i < command->meshIndex; ++i)
+        for (size_t i = 0; i < command.meshIndex; ++i)
         {
             meshCursor.step<MeshBufferIndices>();
 
@@ -300,20 +297,18 @@ namespace renderer
 
         setVertexLayout(
             renderBatch,
-            memory.locationsDescriptors.data() + command->locationsIndex,
+            memory.locationsDescriptors.data() + command.locationsIndex,
             buffers);
 
         ++(*memory.renderBatchCount.data());
     }
 
-    void handleUpdateTransformCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    void handleUpdateTransformCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const UpdateTransformCommand& command)
     {
         MutableMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<16> batchCursor;
 
-        const auto* command = commandView.read_object<UpdateTransformCommand>(0).data();
-
-        for (size_t i = 0; i < command->batchIndex; ++i)
+        for (size_t i = 0; i < command.batchIndex; ++i)
         {
             batchCursor.step<RenderBatch>();
             const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
@@ -323,17 +318,15 @@ namespace renderer
         batchCursor.step<RenderBatch>();
         const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
 
-        (entities.data() + command->entityIndex)->transform = command->transform;
+        (entities.data() + command.entityIndex)->transform = command.transform;
     }
 
-    void handleUpdateMaterialCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    void handleUpdateMaterialCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const UpdateMaterialCommand& command)
     {
         MutableMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<16> batchCursor;
 
-        const auto* command = commandView.read_object<UpdateMaterialCommand>(0).data();
-
-        for (size_t i = 0; i < command->batchIndex; ++i)
+        for (size_t i = 0; i < command.batchIndex; ++i)
         {
             batchCursor.step<RenderBatch>();
             const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
@@ -343,28 +336,24 @@ namespace renderer
         batchCursor.step<RenderBatch>();
         const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
 
-        (entities.data() + command->entityIndex)->material = command->material;
+        (entities.data() + command.entityIndex)->material = command.material;
     }
 
-    void handleSetClientAreaCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    void handleSetClientAreaCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const SetClientAreaCommand& command)
     {
-        const auto* command = commandView.read_object<SetClientAreaCommand>(0).data();
-
-        const int width     = static_cast<int>(command->width);
-        const int height    = static_cast<int>(command->height);
+        const int width     = static_cast<int>(command.width);
+        const int height    = static_cast<int>(command.height);
 
         setViewportArea(width, height);
         setCameraAspectRatio(memory, width, height);
     }
 
-    void handleSetTextureLayerCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView)
+    void handleSetTextureLayerCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const SetTextureLayerCommand& command)
     {
         MutableMemoryView renderBatchView(memory.renderBatchSpan);
         MemoryCursor<16> batchCursor;
 
-        const auto* command = commandView.read_object<SetTextureLayerCommand>(0).data();
-
-        for (size_t i = 0; i < command->batchIndex; ++i)
+        for (size_t i = 0; i < command.batchIndex; ++i)
         {
             batchCursor.step<RenderBatch>();
             const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
@@ -374,21 +363,7 @@ namespace renderer
         batchCursor.step<RenderBatch>();
         const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(batchCursor.getOffset());
 
-        (entities.data() + command->entityIndex)->layer = command->layer;
-    }
-
-    void processCommand(Allocator* allocator, const Command* command)
-    {
-        FixedSpan<std::byte, true, Command::DATA_SECTION_SIZE> commandSpan(command->data, Command::DATA_SECTION_SIZE);
-        commandDispatchTable[static_cast<size_t>(command->type)](allocator, readGraphicsMemory(allocator), ConstMemoryView(commandSpan));
-    }
-
-    void processFrame(Allocator* allocator, const Frame* frame)
-    {
-        for (const auto& command : frame->renderCommands)
-        {
-            processCommand(allocator, &command);
-        }
+        (entities.data() + command.entityIndex)->layer = command.layer;
     }
 
     float getFovDegrees(const Camera* camera)

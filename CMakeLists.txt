@@ -23,7 +23,6 @@ find_package(zerox_memory_bridge CONFIG REQUIRED)
 add_subdirectory(${GLAD_DIR})
 
 list(APPEND SOURCES
-    ${SRC_DIR}/render_frame_buffer.cpp
     ${SRC_DIR}/renderer.cpp
     ${SRC_DIR}/renderer_opengl.cpp)
 

@@ -14,6 +14,7 @@
 #include "graphics_memory.hpp"
 #include "mesh_span.hpp"
 #include "render_batch.h"
+#include "render_command_types.h"
 
 namespace ZeroXBridge
 {
@@ -26,7 +27,6 @@ namespace renderer
     struct Eye;
     struct Frustum;
     struct Shader;
-    struct Frame;
     struct Command;
     struct RenderBuffer;
 
@@ -229,26 +229,11 @@ namespace renderer
     void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
     void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
 
-    inline void handleUnknownCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView) { /* TODO(Karim) : Maybe throw? */ }
-    void handleAllocateBatchCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
-    void handleUpdateTransformCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
-    void handleUpdateMaterialCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
-    void handleSetClientAreaCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
-    void handleSetTextureLayerCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const ConstMemoryView& commandView);
-
-    using CommandHandlerFunc = void (*)(Allocator* allocator, const MutableGraphicsMemory&, const ConstMemoryView& commandView);
-
-    inline constexpr CommandHandlerFunc commandDispatchTable[6] = {
-        &handleUnknownCommand,
-        &handleAllocateBatchCommand,
-        &handleUpdateTransformCommand,
-        &handleUpdateMaterialCommand,
-        &handleSetClientAreaCommand,
-        &handleSetTextureLayerCommand
-    };
-
-    void processCommand(Allocator* allocator, const Command* command);
-    void processFrame(Allocator* allocator, const Frame* frame);
+    void handleAllocateBatchCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const AllocateBatchCommand& command);
+    void handleUpdateTransformCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const UpdateTransformCommand& command);
+    void handleUpdateMaterialCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const UpdateMaterialCommand& command);
+    void handleSetClientAreaCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const SetClientAreaCommand& command);
+    void handleSetTextureLayerCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const SetTextureLayerCommand& command);
 
     float getFovDegrees(const Camera* camera);
     glm::vec2 getViewportWorldDimensions(const Camera* camera, const Eye* eye, const Frustum* frustum);
