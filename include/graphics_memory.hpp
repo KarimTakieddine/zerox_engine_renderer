@@ -6,6 +6,8 @@
 #include "eye.h"
 #include "frustum.h"
 #include "locations_descriptor.h"
+#include "shader.h"
+#include "shader_program.h"
 #include "spans.hpp"
 #include "uniform_buffer_segment.h"
 
@@ -17,8 +19,8 @@ namespace renderer
         DynamicSpan<unsigned int, IsConst> bufferObjects;
         DynamicSpan<unsigned int, IsConst> vertexArrayObjects;
         DynamicSpan<unsigned int, IsConst> textures;
-        DynamicSpan<unsigned int, IsConst> shaders;
-        DynamicSpan<unsigned int, IsConst> shaderPrograms;
+        DynamicSpan<Shader, IsConst> shaders;
+        DynamicSpan<ShaderProgram, IsConst> shaderPrograms;
         DynamicSpan<std::byte, IsConst> meshSpan;
         DynamicSpan<LocationsDescriptor, IsConst> locationsDescriptors;
         DynamicSpan<Eye, IsConst> cameraEye;

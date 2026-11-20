@@ -65,7 +65,7 @@ namespace renderer
     {
         const Mesh* meshes                              { nullptr };
         const Texture* textures                         { nullptr };
-        const Shader* shaders                           { nullptr };
+        const ShaderLoadInfo* shaders                   { nullptr };
         const Eye* cameraEye                            { nullptr };
         const Frustum* cameraFrustum                    { nullptr };
         const char* const cameraUniformBuffer           { nullptr };
@@ -116,13 +116,13 @@ namespace renderer
         graphicsMemory.textures                     = textures;
         cursor.step_array<unsigned int>(textures.size());
 
-        DynamicSpan<unsigned int, IsConst> shaders  = memoryView.template read_contiguous_array<unsigned int>(cursor.getOffset());
+        DynamicSpan<unsigned int, IsConst> shaders  = memoryView.template read_contiguous_array<Shader>(cursor.getOffset());
         graphicsMemory.shaders                      = shaders;
-        cursor.step_array<unsigned int>(shaders.size());
+        cursor.step_array<Shader>(shaders.size());
 
-        DynamicSpan<unsigned int, IsConst> shaderPrograms   = memoryView.template read_contiguous_array<unsigned int>(cursor.getOffset());
+        DynamicSpan<unsigned int, IsConst> shaderPrograms   = memoryView.template read_contiguous_array<ShaderProgram>(cursor.getOffset());
         graphicsMemory.shaderPrograms                       = shaderPrograms;
-        cursor.step_array<unsigned int>(shaderPrograms.size());
+        cursor.step_array<ShaderProgram>(shaderPrograms.size());
 
         const uint64_t meshDataOffset   = cursor.getOffset();
         const uint64_t meshCount        = *memoryView.template read_object<uint64_t>(meshDataOffset).data();
@@ -189,12 +189,27 @@ namespace renderer
 
     void generateBuffers(const MutableGraphicsMemory& memory);
     void generateVertexArrays(const MutableGraphicsMemory& memory);
+
     void generateTextures(const MutableGraphicsMemory& memory);
     bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const Texture* textures);
     bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles);
-    bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders);
-    void generateShaderPrograms(const MutableGraphicsMemory& memory);
-    bool compileShaderProgram(const MutableGraphicsMemory& memory, size_t index, size_t count, const size_t* indices);
+
+    bool createShader(Shader* shader, Shader::Type type);
+    bool compileShader(Shader* shader, const char* content);
+    bool loadShader(Shader* shader, const ShaderLoadInfo* loadInfo);
+    bool loadShaders(const MutableGraphicsMemory& memory, const ShaderLoadInfo* loadInfo, size_t count);
+    void unloadShader(Shader* shader);
+    void unloadShaders(Shader* shaders, size_t count);
+    void unloadShaders(const MutableGraphicsMemory& memory);
+
+    bool createShaderProgram(ShaderProgram* program);
+    bool linkShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program, const size_t* indices, size_t count);
+    bool loadShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program, const ShaderCompileStep* shaderCompileStep);
+    bool loadShaderPrograms(const MutableGraphicsMemory& memory, const ShaderCompileStep* shaderCompileSteps, size_t compileStepCount);
+    void unloadShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program);
+    void unloadShaderPrograms(const MutableGraphicsMemory& memory, ShaderProgram* programs, size_t count);
+    void unloadShaderPrograms(const MutableGraphicsMemory& memory);
+
     void generateMeshes(const MutableGraphicsMemory& memory);
     void uploadMeshes(const ConstGraphicsMemory& memory);
     void uploadMesh(const MeshSpan<true>& meshSpan);

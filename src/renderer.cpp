@@ -11,6 +11,7 @@
 #include "render_command_types.h"
 #include "renderer.hpp"
 #include "shader.h"
+#include "shader_program.h"
 #include "uniform_buffer_segment.h"
 
 namespace renderer
@@ -62,13 +63,13 @@ namespace renderer
     void allocateShaders(Allocator* allocator, size_t count)
     {
         allocator->requestMemory<uint64_t>(count);
-        allocator->requestMemoryArray<unsigned int>(count);
+        allocator->requestMemoryArray<Shader>(count);
     }
 
     void allocateShaderPrograms(Allocator* allocator, size_t count)
     {
         allocator->requestMemory<uint64_t>(count);
-        allocator->requestMemoryArray<unsigned int>(count);
+        allocator->requestMemoryArray<ShaderProgram>(count);
     }
 
     void allocateLocationsDescriptors(Allocator* allocator, size_t count)
@@ -165,20 +166,9 @@ namespace renderer
         generateBuffers(memory);
         generateVertexArrays(memory);
         generateTextures(memory);
-        generateShaders(memory, config->shaderCount, config->shaders);
-        generateShaderPrograms(memory);
+        loadShaders(memory, config->shaders, config->shaderCount);
+        loadShaderPrograms(memory, config->shaderCompileSteps, config->compileStepCount);
         generateMeshes(memory);
-
-        for (size_t i = 0; i < config->compileStepCount; ++i)
-        {
-            const ShaderCompileStep* compileStep = config->shaderCompileSteps + i;
-
-            compileShaderProgram(
-                memory,
-                compileStep->programIndex,
-                compileStep->shaderCount,
-                compileStep->shaderIndices);
-        }
 
         auto graphicsMemory = freezeGraphicsMemory(memory);
 
@@ -260,7 +250,7 @@ namespace renderer
     {
         auto* renderBatch = allocator->requestMemory<RenderBatch>(RenderBatch{
             .descriptorIndex    = command.locationsIndex,
-            .shaderProgram      = memory.shaderPrograms.data()[command.shaderProgramIndex],
+            .shaderProgram      = memory.shaderPrograms.data()[command.shaderProgramIndex].id,
             .vertexArray        = memory.vertexArrayObjects.data()[command.vertexArrayIndex],
             .drawMode           = static_cast<DrawMode>(command.drawMode)
         });

@@ -62,6 +62,19 @@ namespace
         default:                            return GL_NONE;
         }
     }
+
+    using renderer::Shader;
+
+    constexpr GLenum shaderTypeToGLenum(Shader::Type type)
+    {
+        switch(type)
+        {
+        case Shader::Type::VERTEX:      return GL_VERTEX_SHADER;
+        case Shader::Type::FRAGMENT:    return GL_FRAGMENT_SHADER;
+        case Shader::Type::GEOMETRY:    return GL_GEOMETRY_SHADER;
+        default:                        return GL_NONE;
+        }
+    }
 }
 
 namespace renderer
@@ -242,116 +255,273 @@ namespace renderer
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangles.size_bytes(), triangles.data(), GL_STATIC_DRAW);
     }
 
-    bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders)
+    bool createShader(Shader* shader, Shader::Type type)
     {
-        const auto shadersView = memory.shaders;
+        unsigned int& refCount = shader->refCount;
 
-        auto shaderCount = shadersView.size();
+        if (isActive(shader) || refCount != 0)
+        {
+            return false;
+        }
+
+        *shader = {
+            .id     = glCreateShader(::shaderTypeToGLenum(type)),
+            .type   = type
+        };
+
+        if (!isActive(shader))
+        {
+            return false;
+        }
+
+        refCount = 1;
+
+        return true;
+    }
+
+    bool compileShader(Shader* shader, const char* content)
+    {
+        if (!isActive(shader))
+        {
+            return false;
+        }
+
+        const GLuint id = static_cast<GLuint>(shader->id);
+
+        glShaderSource(id, 1, &content, nullptr);
+        glCompileShader(id);
+
+        GLint compileStatus{ GL_FALSE };
+        glGetShaderiv(id, GL_COMPILE_STATUS, &compileStatus);
+
+        shader->compileStatus = static_cast<Shader::CompileStatus>(compileStatus);
+
+        return ( compileStatus == GL_TRUE );
+    }
+
+    bool loadShader(Shader* shader, const ShaderLoadInfo* loadInfo)
+    {
+        return
+            createShader(shader, loadInfo->type) &&
+            compileShader(shader, loadInfo->content);
+    }
+
+    bool loadShaders(const MutableGraphicsMemory& memory, const ShaderLoadInfo* loadInfo, size_t count)
+    {
+        if (!loadInfo)
+        {
+            return false;
+        }
+
+        const auto shaders = memory.shaders;
+
+        const size_t shaderCount = shaders.size();
 
         if (count > shaderCount)
         {
             count = shaderCount;
         }
 
-        auto* shadersData = shadersView.data();
-
+        bool allLoaded{ true };
         for (size_t i = 0; i < count; ++i)
         {
-            const Shader& shader = shaders[i];
+            Shader* shader                          = shaders.data() + i;
+            const ShaderLoadInfo* shaderLoadInfo    = loadInfo + i;
 
-            GLenum shaderType = GL_NONE;
-
-            switch (shader.type)
+            if (!loadShader(shader, loadInfo + i))
             {
-            case Shader::Type::VERTEX:
-                shaderType = GL_VERTEX_SHADER;
-                break;
-            case Shader::Type::FRAGMENT:
-                shaderType = GL_FRAGMENT_SHADER;
-                break;
-            default:
-                break;
+                allLoaded = false;
             }
-
-            if (shaderType == GL_NONE)
-            {
-                return false;
-            }
-
-            const GLuint shaderObject = glCreateShader(shaderType);
-
-            *(shadersData + i) = shaderObject;
-
-            const size_t fileSize = platform::getFileSize(shader.path);
-            if (fileSize == 0)
-                return false;
-
-            char* fileBuffer = new char[fileSize + 1]();
-            std::memset(fileBuffer, 0, fileSize + 1);
-            if (!platform::readFile(shader.path, fileBuffer, fileSize))
-            {
-                delete[] fileBuffer;
-                return false;
-            }
-
-            glShaderSource(shaderObject, 1, &fileBuffer, nullptr);
-            glCompileShader(shaderObject);
-
-            GLint compileStatus{ GL_FALSE };
-            glGetShaderiv(shaderObject, GL_COMPILE_STATUS, &compileStatus);
-            if (compileStatus == GL_FALSE)
-            {
-                delete[] fileBuffer;
-                return false;
-            }
-
-            delete[] fileBuffer;
         }
 
-        return true;
+        return allLoaded;
     }
 
-    void generateShaderPrograms(const MutableGraphicsMemory& memory)
+    void unloadShader(Shader* shader)
     {
-        const auto shaderPrograms = memory.shaderPrograms;
+        unsigned int& refCount = shader->refCount;
 
-        for (size_t i = 0; i < shaderPrograms.size(); ++i)
+        if (refCount == 0)
         {
-            *(shaderPrograms.data() + i) = glCreateProgram();
+            return;
+        }
+
+        --refCount;
+
+        if (refCount == 0)
+        {
+            if (!isActive(shader))
+            {
+                return;
+            }
+
+            glDeleteShader(shader->id);
+       
+            shader->id              = 0;
+            shader->type            = Shader::Type::UNKNOWN;
+            shader->compileStatus   = static_cast<Shader::CompileStatus>(GL_FALSE);
         }
     }
 
-    bool compileShaderProgram(const MutableGraphicsMemory& memory, size_t index, size_t count, const size_t* indices)
+    void unloadShaders(Shader* shaders, size_t count)
     {
-        const auto shaderPrograms = memory.shaderPrograms;
-        if (index >= shaderPrograms.size())
+        assert(shaders);
+
+        size_t i = count;
+
+        while (i --> 0)
+        {
+            unloadShader(shaders + i);
+        }
+    }
+
+    void unloadShaders(const MutableGraphicsMemory& memory)
+    {
+        const auto shaders = memory.shaders;
+
+        unloadShaders(shaders.data(), shaders.size());
+    }
+
+    bool createShaderProgram(ShaderProgram* program)
+    {
+        if (isActive(program) || program->refCount != 0)
         {
             return false;
         }
 
-        const auto shaders          = memory.shaders;
-        const size_t shaderCount    = shaders.size();
+        program->id = glCreateProgram();
 
-        const GLuint program = shaderPrograms.data()[index];
+        if (!isActive(program))
+        {
+            return false;
+        }
+
+        program->refCount = 1;
+
+        return true;
+    }
+
+    bool linkShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program, const size_t* indices, size_t count)
+    {
+        if (!indices)
+        {
+            return false;
+        }
+
+        const auto shaders = memory.shaders;
+
+        const size_t shaderCount = shaders.size();
+        
+        if (count > shaderCount)
+        {
+            count = shaderCount;
+        }
+
+        const GLuint programId = program->id;
 
         for (size_t i = 0; i < count; ++i)
         {
-            const size_t shaderIndex = indices[i];
+            Shader* shader = shaders.data() + indices[i];
 
-            if (shaderIndex >= shaderCount)
-            {
-                return false;
-            }
+            glAttachShader(programId, shader->id);
 
-            glAttachShader(program, *(shaders.data() + shaderIndex));
+            ++shader->refCount;
         }
 
-        glLinkProgram(program);
+        program->shaderIndices  = indices;
+        program->shaderCount    = count;
+
+        glLinkProgram(programId);
 
         GLint linkStatus{ GL_FALSE };
-        glGetProgramiv(program, GL_LINK_STATUS, &linkStatus);
+        glGetProgramiv(programId, GL_LINK_STATUS, &linkStatus);
+        program->linkStatus = static_cast<ShaderProgram::LinkStatus>(linkStatus);
 
-        return linkStatus == GL_TRUE;
+        return ( linkStatus == GL_TRUE );
+    }
+
+    bool loadShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program, const ShaderCompileStep* shaderCompileStep)
+    {
+        return
+            createShaderProgram(program) &&
+            linkShaderProgram(memory, program, shaderCompileStep->shaderIndices, shaderCompileStep->shaderCount);
+    }
+
+    bool loadShaderPrograms(const MutableGraphicsMemory& memory, const ShaderCompileStep* shaderCompileSteps, size_t compileStepCount)
+    {
+        const auto shaderPrograms = memory.shaderPrograms;
+
+        const size_t shaderProgramCount = shaderPrograms.size();
+
+        if (compileStepCount > shaderProgramCount)
+        {
+            compileStepCount = shaderProgramCount;
+        }
+
+        bool allLinked{ true };
+        for (size_t i = 0; i < compileStepCount; ++i)
+        {
+            const ShaderCompileStep* step = shaderCompileSteps + i;
+
+            if (!loadShaderProgram(memory, shaderPrograms.data() + i, shaderCompileSteps + i))
+            {
+                allLinked = false;
+            }
+        }
+
+        return allLinked;
+    }
+
+    void unloadShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program)
+    {
+        unsigned int& refCount = program->refCount;
+
+        if (refCount == 0)
+        {
+            return;
+        }
+
+        --refCount;
+
+        if (refCount == 0)
+        {
+            if (!isActive(program))
+            {
+                return;
+            }
+
+            const GLuint programId = program->id;
+
+            size_t shaderIndex = program->shaderCount;
+
+            while (shaderIndex --> 0)
+            {
+                Shader* shader = memory.shaders.data() + program->shaderIndices[shaderIndex];
+
+                glDetachShader(programId, shader->id);
+
+                --shader->refCount;
+            }
+
+            glDeleteProgram(programId);
+        }
+    }
+
+    void unloadShaderPrograms(const MutableGraphicsMemory& memory, ShaderProgram* programs, size_t count)
+    {
+        size_t index = count;
+
+        while (index-- > 0)
+        {
+            unloadShaderProgram(memory, programs + index);
+        }
+    }
+
+    void unloadShaderPrograms(const MutableGraphicsMemory& memory)
+    {
+        const auto shaderPrograms = memory.shaderPrograms;
+
+        unloadShaderPrograms(memory, shaderPrograms.data(), shaderPrograms.size());
     }
 
     void initializeGraphicsState()
@@ -380,7 +550,7 @@ namespace renderer
             return false;
         }
 
-        const GLuint shaderProgram = shaderPrograms.data()[programIndex];
+        const GLuint shaderProgram = shaderPrograms.data()[programIndex].id;
 
         const auto locationsDescriptors = memory.locationsDescriptors;
         if (descriptorIndex >= locationsDescriptors.size())
@@ -423,7 +593,7 @@ namespace renderer
             return false;
         }
 
-        const GLuint shaderProgram = shaderPrograms.data()[programIndex];
+        const GLuint shaderProgram = shaderPrograms.data()[programIndex].id;
 
         const GLuint blockIndex = glGetUniformBlockIndex(shaderProgram, name);
         if (blockIndex == GL_INVALID_INDEX)
@@ -630,32 +800,7 @@ namespace renderer
 
     void freeShaders(const MutableGraphicsMemory& memory)
     {
-        const auto shaderPrograms = memory.shaderPrograms;
-
-        for (size_t i = 0; i < shaderPrograms.size(); ++i)
-        {
-            const GLuint program = *(shaderPrograms.data() + i);
-
-            GLint attachedShaderCount{ 0 };
-            glGetProgramiv(program, GL_ATTACHED_SHADERS, &attachedShaderCount);
-
-            if (attachedShaderCount > 0)
-            {
-                GLuint* attachedShaders = new GLuint[attachedShaderCount];
-                glGetAttachedShaders(program, attachedShaderCount, &attachedShaderCount, attachedShaders);
-                
-                for (GLint j = 0; j < attachedShaderCount; ++j)
-                {
-                    const GLuint shader = attachedShaders[j];
-
-                    glDetachShader(program, shader);
-                    glDeleteShader(shader);
-                }
-
-                delete[] attachedShaders;
-            }
-
-            glDeleteProgram(program);
-        }
+        unloadShaderPrograms(memory);
+        unloadShaders(memory);
     }
 }
