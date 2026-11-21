@@ -1140,12 +1140,17 @@ namespace renderer
         position.x = glm::round(position.x * pixelsPerUnit.x) / pixelsPerUnit.x;
         position.y = glm::round(position.y * pixelsPerUnit.y) / pixelsPerUnit.y;
 
-        glUniformMatrix4fv(entityBindings->transformUniform->location, 3, GL_FALSE, reinterpret_cast<const GLfloat*>(&entityTransform.localToWorld));
+        const ShaderVariable* transformUniform = entityBindings->transformUniform;
+        glUniformMatrix4fv(transformUniform->location, static_cast<GLsizei>(transformUniform->count), GL_FALSE, glm::value_ptr(entityTransform.localToWorld));
 
         const ZeroXBridge::Material& material = entity->material;
 
-        glUniform4fv(entityBindings->materialColorUniform->location, 1, glm::value_ptr(material.color));
-        glUniform2fv(entityBindings->uvUniform->location, 2, reinterpret_cast<const GLfloat*>(&material.uvScale));
+        const ShaderVariable* colorUniform = entityBindings->materialColorUniform;
+        glUniform4fv(colorUniform->location, static_cast<GLsizei>(colorUniform->count), glm::value_ptr(material.color));
+
+        const ShaderVariable* uvUniform = entityBindings->uvUniform;
+        glUniform2fv(uvUniform->location, static_cast<GLsizei>(uvUniform->count), glm::value_ptr(material.uvScale));
+
         glUniform2ui(entityBindings->tileSizeUniform->location, static_cast<GLuint>(material.tileSizeX), static_cast<GLuint>(material.tileSizeY));
         glUniform1ui(entityBindings->layerUniform->location, entity->layer);
 
