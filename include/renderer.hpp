@@ -30,7 +30,7 @@ namespace renderer
     struct Command;
     struct RenderBuffer;
 
-    static constexpr size_t ALLOCATOR_SIZE      = 1 << 13;
+    static constexpr size_t ALLOCATOR_SIZE      = 1 << 14;
     static constexpr uint64_t MEMORY_ALIGNMENT  = 16;
 
     using Allocator = BumpAllocator<16>;
@@ -157,6 +157,11 @@ namespace renderer
         graphicsMemory.uniformBufferSegments                                = uniformBufferSegments;
         cursor.step_array<UniformBufferSegment>(uniformBufferSegments.size());
 
+        if (allocator->getLiveSizeInBytes() == cursor.getOffset())
+        {
+            return graphicsMemory;
+        }
+
         DynamicSpan<char, IsConst> shaderAttributeNames = memoryView.template read_contiguous_array<char>(cursor.getOffset());
         graphicsMemory.shaderAttributeNames             = shaderAttributeNames;
         cursor.step_array<char>(shaderAttributeNames.size());
@@ -173,17 +178,17 @@ namespace renderer
         graphicsMemory.shaderUniforms                       = shaderUniforms;
         cursor.step_array<ShaderVariable>(shaderUniforms.size());
 
+        if (allocator->getLiveSizeInBytes() == cursor.getOffset())
+        {
+            return graphicsMemory;
+        }
+
         DynamicSpan<EntityBindings, IsConst> renderEntityBindings   = memoryView.template read_contiguous_array<EntityBindings>(cursor.getOffset());
         graphicsMemory.renderEntityBindings                         = renderEntityBindings;
         cursor.step_array<EntityBindings>(renderEntityBindings.size());
 
         graphicsMemory.renderBatchCount = memoryView.template read_object<uint64_t>(cursor.getOffset());
         cursor.step<uint64_t>();
-
-        if (*graphicsMemory.renderBatchCount.data() == 0)
-        {
-            return graphicsMemory;
-        }
 
         graphicsMemory.renderBatchSpan = allocatorSpan.subspan(cursor.getOffset(), allocator->getLiveSizeInBytes() - cursor.getOffset());
 

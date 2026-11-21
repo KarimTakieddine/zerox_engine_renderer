@@ -173,7 +173,6 @@ namespace renderer
         auto graphicsMemory = freezeGraphicsMemory(readGraphicsMemory(allocator));
 
         loadEntityBindings(allocator, graphicsMemory);
-        allocateUniformBuffer(allocator, 4);
         allocateRenderBatchCount(allocator);
 
         uploadMeshes(graphicsMemory);
@@ -212,12 +211,10 @@ namespace renderer
             const auto* batch = renderBatchView.read_object<RenderBatch>(renderBatchCursor.getOffset()).data();
             renderBatchCursor.step<RenderBatch>();
 
-            const size_t shaderProgramIndex = static_cast<size_t>(batch->shaderProgramIndex);
-
             const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(renderBatchCursor.getOffset());
             renderBatchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
 
-            const ShaderProgram* shaderProgram      = memory.shaderPrograms.data() + shaderProgramIndex;
+            /*const ShaderProgram* shaderProgram      = memory.shaderPrograms.data() + shaderProgramIndex;
             const EntityBindings* entityBindings    = memory.renderEntityBindings.data() + shaderProgramIndex;
 
             renderBatch(shaderProgram, *(memory.vertexArrayObjects.data() + static_cast<size_t>(batch->vertexArrayIndex)));
@@ -225,7 +222,7 @@ namespace renderer
             for (size_t j = 0; j < entities.size(); ++j)
             {
                 renderEntity(entities.data() + j, entityBindings, batch->drawMode, batch->elementCount, pixelsPerUnit);
-            }
+            }*/
         }
     }
 
@@ -241,6 +238,7 @@ namespace renderer
         auto* batch = allocator->requestMemory<RenderBatch>(RenderBatch{
             .entityCount        = command.entityCount,
             .drawMode           = command.drawMode,
+            .meshIndex          = command.meshIndex,
             .shaderProgramIndex = command.shaderProgramIndex,
             .vertexArrayIndex   = command.vertexArrayIndex,
             .elementCount       = command.elementCount
@@ -257,7 +255,7 @@ namespace renderer
         const auto* meshCount = meshView.read_object<uint64_t>(meshCursor.getOffset()).data();
         meshCursor.step<uint64_t>();
 
-        for (size_t i = 0; i < command.meshIndex; ++i)
+        for (size_t i = 0; i < batch->meshIndex; ++i)
         {
             meshCursor.step<MeshBufferIndices>();
 

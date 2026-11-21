@@ -12,11 +12,11 @@ namespace renderer
 
     struct alignas(16) RenderBatch
     {
-        size_t entityCount      { 0 };
-        DrawMode drawMode       { DrawMode::TRIANGLES };
-        int meshIndex           { -1 };
-        int shaderProgramIndex  { -1 };
-        int vertexArrayIndex    { -1 };
-        int elementCount        { 0 };
+        size_t entityCount          { 0 };
+        DrawMode drawMode           { DrawMode::TRIANGLES };
+        int meshIndex               { -1 };
+        int shaderProgramIndex      { -1 };
+        int vertexArrayIndex        { -1 };
+        unsigned int elementCount   { 0 };
     };
 }
