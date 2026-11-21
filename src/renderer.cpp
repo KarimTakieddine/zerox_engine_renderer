@@ -161,13 +161,14 @@ namespace renderer
         allocateRenderBatchCount(allocator);
     }
 
-    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config)
+    void initializeGraphicsResources(Allocator* allocator, const MutableGraphicsMemory& memory, const GraphicsConfig* config)
     {
         generateBuffers(memory);
         generateVertexArrays(memory);
         generateTextures(memory);
         loadShaders(memory, config->shaders, config->shaderCount);
         loadShaderPrograms(memory, config->shaderCompileSteps, config->compileStepCount);
+        loadShaderVariables(allocator, memory);
         generateMeshes(memory);
 
         auto graphicsMemory = freezeGraphicsMemory(memory);

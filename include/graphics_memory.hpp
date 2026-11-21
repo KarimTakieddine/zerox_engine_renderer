@@ -21,6 +21,8 @@ namespace renderer
         DynamicSpan<unsigned int, IsConst> textures;
         DynamicSpan<Shader, IsConst> shaders;
         DynamicSpan<ShaderProgram, IsConst> shaderPrograms;
+        DynamicSpan<char, IsConst> shaderUniformNames;
+        DynamicSpan<ShaderUniformVariable, IsConst> shaderUniformVariables;
         DynamicSpan<std::byte, IsConst> meshSpan;
         DynamicSpan<LocationsDescriptor, IsConst> locationsDescriptors;
         DynamicSpan<Eye, IsConst> cameraEye;
@@ -43,6 +45,8 @@ namespace renderer
             memory.textures,
             memory.shaders,
             memory.shaderPrograms,
+            memory.shaderUniformNames,
+            memory.shaderUniformVariables,
             memory.meshSpan,
             memory.locationsDescriptors,
             memory.cameraEye,

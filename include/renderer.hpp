@@ -123,6 +123,14 @@ namespace renderer
         graphicsMemory.shaderPrograms                       = shaderPrograms;
         cursor.step_array<ShaderProgram>(shaderPrograms.size());
 
+        DynamicSpan<char, IsConst> shaderUniformNames   = memoryView.template read_contiguous_array<char>(cursor.getOffset());
+        graphicsMemory.shaderUniformNames               = shaderUniformNames;
+        cursor.step_array<char>(shaderUniformNames.size());
+
+        DynamicSpan<ShaderUniformVariable, IsConst> shaderUniformVariables  = memoryView.template read_contiguous_array<ShaderUniformVariable>(cursor.getOffset());
+        graphicsMemory.shaderUniformVariables                               = shaderUniformVariables;
+        cursor.step_array<ShaderUniformVariable>(shaderUniformVariables.size());
+
         const uint64_t meshDataOffset   = cursor.getOffset();
         const uint64_t meshCount        = *memoryView.template read_object<uint64_t>(meshDataOffset).data();
         cursor.step<uint64_t>();
@@ -209,6 +217,10 @@ namespace renderer
     void unloadShaderPrograms(const MutableGraphicsMemory& memory, ShaderProgram* programs, size_t count);
     void unloadShaderPrograms(const MutableGraphicsMemory& memory);
 
+    bool loadShaderVariables(Allocator* allocator, ShaderProgram* program, size_t* uniformCount, char* uniformNameBuffer, ShaderUniformVariable* uniformBuffer);
+    bool loadShaderVariables(Allocator* allocator, ShaderProgram* programs, size_t count);
+    bool loadShaderVariables(Allocator* allocator, const MutableGraphicsMemory& memory);
+
     void generateMeshes(const MutableGraphicsMemory& memory);
     void uploadMeshes(const ConstGraphicsMemory& memory);
     void uploadMesh(const MeshSpan<true>& meshSpan);
@@ -222,7 +234,7 @@ namespace renderer
     bool mapCameraUniforms(const MutableGraphicsMemory& memory);
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
     void setVertexLayout(const RenderBatch* batch, const LocationsDescriptor* descriptor, const MeshBufferIndices* buffers);
-    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config);
+    void initializeGraphicsResources(Allocator* allocator, const MutableGraphicsMemory& memory, const GraphicsConfig* config);
     void setTextureParameters(unsigned int texture, unsigned int target, const ZeroXBridge::Texture* parameters, bool unbind = false);
     void initializeRenderBuffer(RenderBuffer* buffer);
     void destroyRenderBuffer(const RenderBuffer* buffer);

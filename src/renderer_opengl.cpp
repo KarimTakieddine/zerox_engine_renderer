@@ -75,6 +75,21 @@ namespace
         default:                        return GL_NONE;
         }
     }
+    
+    constexpr renderer::GPUDataType glEnumToUniformType(GLenum type)
+    {
+        switch (type)
+        {
+        case(GL_INT):           return renderer::GPUDataType::INT;
+        case(GL_UNSIGNED_INT):  return renderer::GPUDataType::UINT;
+        case(GL_FLOAT):         return renderer::GPUDataType::FLOAT;
+        case(GL_FLOAT_VEC2):    return renderer::GPUDataType::VEC_2;
+        case(GL_FLOAT_VEC3):    return renderer::GPUDataType::VEC_3;
+        case(GL_FLOAT_VEC4):    return renderer::GPUDataType::VEC_4;
+        case(GL_FLOAT_MAT4):    return renderer::GPUDataType::MAT_4;
+        default:                return renderer::GPUDataType::UNKNOWN;
+        }
+    }
 }
 
 namespace renderer
@@ -522,6 +537,129 @@ namespace renderer
         const auto shaderPrograms = memory.shaderPrograms;
 
         unloadShaderPrograms(memory, shaderPrograms.data(), shaderPrograms.size());
+    }
+
+    bool loadShaderVariables(Allocator* allocator, ShaderProgram* program, size_t* uniformCount, char* uniformNameBuffer, ShaderUniformVariable* uniformBuffer)
+    {
+        if (!isActive(program))
+        {
+            return false;
+        }
+        
+        const GLuint programId = program->id;
+
+        GLint activeUniformCount{ 0 };
+        glGetProgramiv(programId, GL_ACTIVE_UNIFORMS, &activeUniformCount);
+
+        if (activeUniformCount <= 0)
+        {
+            return false;
+        }
+
+        if (uniformCount)
+        {
+            *uniformCount = static_cast<size_t>(activeUniformCount);
+        }
+
+        if (!uniformNameBuffer || !uniformBuffer)
+        {
+            return true;
+        }
+
+        bool allLoaded{ true };
+        for (GLint i = 0; i < activeUniformCount; ++i)
+        {
+            ShaderUniformVariable* shaderUniform = uniformBuffer + i;
+
+            GLchar* uniformName = uniformNameBuffer + (i * MAX_UNIFORM_NAME_LENGTH);
+
+            GLsizei uniformNameLength   { 0 };
+            GLenum uniformType          { GL_NONE };
+            GLint uniformCount          { 0 };
+            glGetActiveUniform(
+                programId,
+                static_cast<GLuint>(i),
+                static_cast<GLsizei>(MAX_UNIFORM_NAME_LENGTH),
+                &uniformNameLength,
+                &uniformCount,
+                &uniformType,
+                uniformName);
+
+            if (uniformNameLength > static_cast<GLsizei>(MAX_UNIFORM_NAME_LENGTH) - 1)
+            {
+                allLoaded = false;
+            }
+
+            shaderUniform->name     = uniformName;
+            shaderUniform->count    = static_cast<unsigned int>(uniformCount);
+            shaderUniform->type     = ::glEnumToUniformType(uniformType);
+            shaderUniform->location = glGetUniformLocation(programId, uniformName);
+        }
+
+        return allLoaded;
+    }
+
+    // TODO(Karim): These need moving to generic ::renderer functionality
+
+    bool loadShaderVariables(Allocator* allocator, ShaderProgram* programs, size_t count)
+    {
+        size_t totalUniformCount{ 0 };
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            size_t uniformCount{ 0 };
+            if (loadShaderVariables(allocator, programs + i, &uniformCount, nullptr, nullptr))
+            {
+                totalUniformCount += uniformCount;
+            }
+        }
+
+        if (totalUniformCount == 0)
+        {
+            return false;
+        }
+
+        const size_t nameBufferSize = static_cast<size_t>(totalUniformCount * MAX_UNIFORM_NAME_LENGTH);
+        allocator->requestMemory<uint64_t>(nameBufferSize);
+        auto* uniformNameBuffer = allocator->requestMemoryArray<GLchar>(nameBufferSize, '\0');
+
+        const size_t uniformBufferSize = static_cast<size_t>(totalUniformCount);
+        allocator->requestMemory<uint64_t>(uniformBufferSize);
+        auto* uniformBuffer = allocator->requestMemoryArray<ShaderUniformVariable>(uniformBufferSize);
+
+        bool allLoaded{ true };
+        for (size_t i = 0; i < count; ++i)
+        {
+            ShaderProgram* program = programs + i;
+
+            size_t uniformCount{ 0 };
+            if (loadShaderVariables(allocator, program, &uniformCount, nullptr, nullptr))
+            {
+                allLoaded = false;
+                continue;
+            }
+
+            if (!loadShaderVariables(allocator, program, nullptr, uniformNameBuffer, uniformBuffer))
+            {
+                allLoaded = false;
+                continue;
+            }
+
+            program->uniforms       = uniformBuffer;
+            program->uniformCount   = uniformCount;
+
+            uniformBuffer       += uniformCount;
+            uniformNameBuffer   += uniformCount * MAX_UNIFORM_NAME_LENGTH;
+        }
+
+        return allLoaded;
+    }
+
+    bool loadShaderVariables(Allocator* allocator, const MutableGraphicsMemory& memory)
+    {
+        const auto shaderPrograms = memory.shaderPrograms;
+
+        return loadShaderVariables(allocator, shaderPrograms.data(), shaderPrograms.size());
     }
 
     void initializeGraphicsState()
