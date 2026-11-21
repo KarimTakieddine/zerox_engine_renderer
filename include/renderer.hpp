@@ -123,6 +123,26 @@ namespace renderer
         graphicsMemory.shaderPrograms                       = shaderPrograms;
         cursor.step_array<ShaderProgram>(shaderPrograms.size());
 
+        DynamicSpan<char, IsConst> shaderAttributeNames = memoryView.template read_contiguous_array<char>(cursor.getOffset());
+        graphicsMemory.shaderAttributeNames             = shaderAttributeNames;
+        cursor.step_array<char>(shaderAttributeNames.size());
+
+        DynamicSpan<ShaderVariable, IsConst> shaderAttributes  = memoryView.template read_contiguous_array<ShaderVariable>(cursor.getOffset());
+        graphicsMemory.shaderAttributes                         = shaderAttributes;
+        cursor.step_array<ShaderVariable>(shaderAttributes.size());
+
+        DynamicSpan<char, IsConst> shaderUniformNames   = memoryView.template read_contiguous_array<char>(cursor.getOffset());
+        graphicsMemory.shaderUniformNames               = shaderUniformNames;
+        cursor.step_array<char>(shaderUniformNames.size());
+
+        DynamicSpan<ShaderVariable, IsConst> shaderUniforms     = memoryView.template read_contiguous_array<ShaderVariable>(cursor.getOffset());
+        graphicsMemory.shaderUniforms                           = shaderUniforms;
+        cursor.step_array<ShaderVariable>(shaderUniforms.size());
+
+        DynamicSpan<EntityBindings, IsConst> renderEntityBindings   = memoryView.template read_contiguous_array<EntityBindings>(cursor.getOffset());
+        graphicsMemory.renderEntityBindings                         = renderEntityBindings;
+        cursor.step_array<EntityBindings>(renderEntityBindings.size());
+
         const uint64_t meshDataOffset   = cursor.getOffset();
         const uint64_t meshCount        = *memoryView.template read_object<uint64_t>(meshDataOffset).data();
         cursor.step<uint64_t>();
@@ -139,18 +159,6 @@ namespace renderer
         }
 
         graphicsMemory.meshSpan = allocatorSpan.subspan(meshDataOffset, cursor.getOffset() - meshDataOffset);
-
-        DynamicSpan<char, IsConst> shaderUniformNames   = memoryView.template read_contiguous_array<char>(cursor.getOffset());
-        graphicsMemory.shaderUniformNames               = shaderUniformNames;
-        cursor.step_array<char>(shaderUniformNames.size());
-
-        DynamicSpan<ShaderUniformVariable, IsConst> shaderUniformVariables  = memoryView.template read_contiguous_array<ShaderUniformVariable>(cursor.getOffset());
-        graphicsMemory.shaderUniformVariables                               = shaderUniformVariables;
-        cursor.step_array<ShaderUniformVariable>(shaderUniformVariables.size());
-
-        DynamicSpan<EntityBindings, IsConst> renderEntityBindings   = memoryView.template read_contiguous_array<EntityBindings>(cursor.getOffset());
-        graphicsMemory.renderEntityBindings                         = renderEntityBindings;
-        cursor.step_array<EntityBindings>(renderEntityBindings.size());
 
         /*DynamicSpan<LocationsDescriptor, IsConst> locationsDescriptors  = memoryView.template read_contiguous_array<LocationsDescriptor>(cursor.getOffset());
         graphicsMemory.locationsDescriptors                             = locationsDescriptors;
@@ -226,9 +234,13 @@ namespace renderer
     void unloadShaderPrograms(const MutableGraphicsMemory& memory, ShaderProgram* programs, size_t count);
     void unloadShaderPrograms(const MutableGraphicsMemory& memory);
 
-    bool loadShaderVariables(const ShaderProgram* program, size_t* uniformCount, char* uniformNameBuffer, ShaderUniformVariable* uniformBuffer);
-    bool loadShaderVariables(Allocator* allocator, ShaderProgram* programs, size_t count);
-    bool loadShaderVariables(Allocator* allocator, const MutableGraphicsMemory& memory);
+    bool loadShaderUniforms(const ShaderProgram* program, size_t* count, char* nameBuffer, ShaderVariable* buffer);
+    bool loadShaderUniforms(Allocator* allocator, ShaderProgram* programs, size_t count);
+    bool loadShaderUniforms(Allocator* allocator, const MutableGraphicsMemory& memory);
+
+    bool loadShaderAttributes(const ShaderProgram* program, size_t* count, char* nameBuffer, ShaderVariable* buffer);
+    bool loadShaderAttributes(Allocator* allocator, ShaderProgram* programs, size_t count);
+    bool loadShaderAttributes(Allocator* allocator, const MutableGraphicsMemory& memory);
 
     bool loadEntityBindings(const ShaderProgram* program, EntityBindings* entityBindings);
     bool loadEntityBindings(Allocator* allocator, const MutableGraphicsMemory& memory, const ShaderProgram* programs, size_t count);
@@ -246,7 +258,7 @@ namespace renderer
     bool generateUniformBuffer(const MutableGraphicsMemory& memory, size_t programIndex, const char* name, const char* const* names);
     bool mapCameraUniforms(const MutableGraphicsMemory& memory);
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
-    void setVertexLayout(const RenderBatch* batch, const LocationsDescriptor* descriptor, const MeshBufferIndices* buffers);
+    void setVertexLayout(const ShaderProgram* program, const EntityBindings* entityBindings, unsigned int vertexArray, const MeshBufferIndices* buffers);
     void initializeGraphicsResources(Allocator* allocator, const GraphicsConfig* config);
     void setTextureParameters(unsigned int texture, unsigned int target, const ZeroXBridge::Texture* parameters, bool unbind = false);
     void initializeRenderBuffer(RenderBuffer* buffer);
@@ -263,8 +275,8 @@ namespace renderer
 
     void initializeGraphicsState();
     void clearFrameBuffer();
-    void renderEntity(const ZeroXBridge::RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit);
-    void renderBatch(const RenderBatch* batch);
+    void renderEntity(const ZeroXBridge::RenderEntity* entity, const EntityBindings* entityBindings, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit);
+    void renderBatch(const ShaderProgram* shaderProgram, unsigned int vertexArray);
     void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
     void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
 

@@ -173,7 +173,8 @@ namespace renderer
         generateMeshes(globalMemory);
         loadShaders(globalMemory, config->shaders, config->shaderCount);
         loadShaderPrograms(globalMemory, config->shaderCompileSteps, config->compileStepCount);
-        loadShaderVariables(allocator, globalMemory);
+        loadShaderUniforms(allocator, globalMemory);
+        loadShaderAttributes(allocator, globalMemory);
         loadEntityBindings(allocator, globalMemory);
         allocateCamera(allocator);
         allocateUniformBuffer(allocator, 4);
@@ -237,22 +238,22 @@ namespace renderer
 
         for (uint64_t i = 0; i < batchCount; ++i)
         {
-            const auto batch = renderBatchView.read_object<RenderBatch>(renderBatchCursor.getOffset());
+            const auto* batch = renderBatchView.read_object<RenderBatch>(renderBatchCursor.getOffset()).data();
             renderBatchCursor.step<RenderBatch>();
+
+            const size_t shaderProgramIndex = static_cast<size_t>(batch->shaderProgramIndex);
 
             const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(renderBatchCursor.getOffset());
             renderBatchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
 
-            renderBatch(batch.data());
+            const ShaderProgram* shaderProgram      = memory.shaderPrograms.data() + shaderProgramIndex;
+            const EntityBindings* entityBindings    = memory.renderEntityBindings.data() + shaderProgramIndex;
+
+            renderBatch(shaderProgram, *(memory.vertexArrayObjects.data() + static_cast<size_t>(batch->vertexArrayIndex)));
 
             for (size_t j = 0; j < entities.size(); ++j)
             {
-                renderEntity(
-                    entities.data() + j,
-                    memory.locationsDescriptors.data() + batch.data()->descriptorIndex,
-                    batch.data()->drawMode, 
-                    batch.data()->elementCount,
-                    pixelsPerUnit);
+                renderEntity(entities.data() + j, entityBindings, batch->drawMode, batch->elementCount, pixelsPerUnit);
             }
         }
     }
@@ -260,20 +261,24 @@ namespace renderer
     void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit)
     {
         uploadUniformBuffer(memory);
+
         renderBatches(memory, pixelsPerUnit);
     }
 
     void handleAllocateBatchCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const AllocateBatchCommand& command)
     {
-        auto* renderBatch = allocator->requestMemory<RenderBatch>(RenderBatch{
-            .descriptorIndex    = command.locationsIndex,
-            .shaderProgram      = memory.shaderPrograms.data()[command.shaderProgramIndex].id,
-            .vertexArray        = memory.vertexArrayObjects.data()[command.vertexArrayIndex],
-            .drawMode           = static_cast<DrawMode>(command.drawMode)
+        auto* batch = allocator->requestMemory<RenderBatch>(RenderBatch{
+            .entityCount        = command.entityCount,
+            .drawMode           = command.drawMode,
+            .shaderProgramIndex = command.shaderProgramIndex,
+            .vertexArrayIndex   = command.vertexArrayIndex,
+            .elementCount       = command.elementCount
         });
 
-        allocator->requestMemory<uint64_t>(command.entityCount);
-        allocator->requestMemoryArray<ZeroXBridge::RenderEntity>(command.entityCount);
+        const size_t entityCount = batch->entityCount;
+
+        allocator->requestMemory<uint64_t>(entityCount);
+        allocator->requestMemoryArray<ZeroXBridge::RenderEntity>(entityCount);
 
         ConstMemoryView meshView(memory.meshSpan);
         MemoryCursor<16> meshCursor;
@@ -295,16 +300,14 @@ namespace renderer
         const auto* buffers = meshView.read_object<MeshBufferIndices>(meshCursor.getOffset()).data();
         meshCursor.step<MeshBufferIndices>();
 
-        const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
-        meshCursor.step_array<Vertex>(vertices.size());
+        const ShaderProgram* shaderProgram  = memory.shaderPrograms.data() + static_cast<size_t>(batch->shaderProgramIndex);
+        const unsigned int vertexArray      = *(memory.vertexArrayObjects.data() + static_cast<size_t>(batch->vertexArrayIndex));
 
-        const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
-
-        renderBatch->elementCount = triangles.size();
-
+        renderBatch(shaderProgram, vertexArray);
         setVertexLayout(
-            renderBatch,
-            memory.locationsDescriptors.data() + command.locationsIndex,
+            shaderProgram,
+            memory.renderEntityBindings.data() + static_cast<size_t>(batch->shaderProgramIndex),
+            vertexArray,
             buffers);
 
         ++(*memory.renderBatchCount.data());

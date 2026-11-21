@@ -11,15 +11,7 @@
 
 namespace renderer
 {
-    struct alignas(16) AllocateBatchCommand
-    {
-        uint64_t shaderProgramIndex { 0 };
-        uint64_t vertexArrayIndex   { 0 };
-        uint64_t locationsIndex     { 0 };
-        uint64_t meshIndex          { 0 };
-        uint64_t entityCount        { 0 };
-        uint64_t drawMode           { 0 };
-    };
+    using AllocateBatchCommand = RenderBatch;
 
     struct alignas(16) UpdateMaterialCommand
     {

@@ -4,9 +4,9 @@
 
 namespace renderer
 {
-	constexpr size_t MAX_UNIFORM_NAME_LENGTH = 1 << 4;
+	constexpr size_t MAX_VARIABLE_NAME_LENGTH = 1 << 4;
 
-	enum class GPUDataType : int16_t
+	enum class GPUDataType : uint16_t
 	{
 		UNKNOWN				= 0,
 		INT					= 1,
@@ -21,11 +21,11 @@ namespace renderer
 		SAMPLER_2D_ARRAY	= 10
 	};
 
-	struct alignas(16) ShaderUniformVariable
+	struct alignas(16) ShaderVariable
 	{
-		const char* name	{ nullptr };
-		unsigned int count	{ 1 };
-		GPUDataType type	{ GPUDataType::UNKNOWN };
-		int16_t location	{ -1 };
+		const char* name{ nullptr };
+		int location	{ -1 };
+		GPUDataType type{ GPUDataType::UNKNOWN };
+		uint16_t count	{ 1 };
 	};
 }

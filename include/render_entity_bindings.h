@@ -1,26 +1,31 @@
 #pragma once
 
-#include "shader_uniform_variable.h"
+#include "shader_variable.h"
 
 namespace renderer
 {
 	struct alignas(16) EntityBindings
 	{
-		const ShaderUniformVariable* transformUniform		{ nullptr };
-		const ShaderUniformVariable* uvUniform				{ nullptr };
-		const ShaderUniformVariable* materialColorUniform	{ nullptr };
-		const ShaderUniformVariable* tileSizeUniform		{ nullptr };
-		const ShaderUniformVariable* layerUniform			{ nullptr };
-		const ShaderUniformVariable* placeholder			{ nullptr };
+		const ShaderVariable* positionAttribute		{ nullptr };
+		const ShaderVariable* colorAttribute		{ nullptr };
+		const ShaderVariable* uvAttribute			{ nullptr };
+		const ShaderVariable* transformUniform		{ nullptr };
+		const ShaderVariable* uvUniform				{ nullptr };
+		const ShaderVariable* materialColorUniform	{ nullptr };
+		const ShaderVariable* tileSizeUniform		{ nullptr };
+		const ShaderVariable* layerUniform			{ nullptr };
 	};
 
 	inline constexpr bool isValid(const EntityBindings* bindings)
 	{
 		return
-			bindings->transformUniform &&
-			bindings->uvUniform &&
-			bindings->materialColorUniform &&
-			bindings->tileSizeUniform &&
+			bindings->positionAttribute		&&
+			bindings->colorAttribute		&&
+			bindings->uvAttribute			&&
+			bindings->transformUniform		&&
+			bindings->uvUniform				&&
+			bindings->materialColorUniform	&&
+			bindings->tileSizeUniform		&&
 			bindings->layerUniform;
 	}
 }

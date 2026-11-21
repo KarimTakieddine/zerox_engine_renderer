@@ -73,7 +73,7 @@ namespace
         }
     }
     
-    constexpr renderer::GPUDataType glEnumToUniformType(GLenum type)
+    constexpr renderer::GPUDataType glEnumToVariableType(GLenum type)
     {
         switch (type)
         {
@@ -539,7 +539,7 @@ namespace renderer
         unloadShaderPrograms(memory, shaderPrograms.data(), shaderPrograms.size());
     }
 
-    bool loadShaderVariables(const ShaderProgram* program, size_t* uniformCount, char* uniformNameBuffer, ShaderUniformVariable* uniformBuffer)
+    bool loadShaderUniforms(const ShaderProgram* program, size_t* count, char* nameBuffer, ShaderVariable* buffer)
     {
         if (!isActive(program))
         {
@@ -556,12 +556,12 @@ namespace renderer
             return false;
         }
 
-        if (uniformCount)
+        if (count)
         {
-            *uniformCount = static_cast<size_t>(activeUniformCount);
+            *count = static_cast<size_t>(activeUniformCount);
         }
 
-        if (!uniformNameBuffer || !uniformBuffer)
+        if (!nameBuffer || !buffer)
         {
             return true;
         }
@@ -569,9 +569,9 @@ namespace renderer
         bool allLoaded{ true };
         for (GLint i = 0; i < activeUniformCount; ++i)
         {
-            ShaderUniformVariable* shaderUniform = uniformBuffer + i;
+            ShaderVariable* variable = buffer + i;
 
-            GLchar* uniformName = uniformNameBuffer + (i * MAX_UNIFORM_NAME_LENGTH);
+            GLchar* uniformName = nameBuffer + (i * MAX_VARIABLE_NAME_LENGTH);
 
             GLsizei uniformNameLength   { 0 };
             GLenum uniformType          { GL_NONE };
@@ -579,21 +579,23 @@ namespace renderer
             glGetActiveUniform(
                 programId,
                 static_cast<GLuint>(i),
-                static_cast<GLsizei>(MAX_UNIFORM_NAME_LENGTH),
+                static_cast<GLsizei>(MAX_VARIABLE_NAME_LENGTH),
                 &uniformNameLength,
                 &uniformCount,
                 &uniformType,
                 uniformName);
 
-            if (uniformNameLength > static_cast<GLsizei>(MAX_UNIFORM_NAME_LENGTH) - 1)
+            if (uniformNameLength > static_cast<GLsizei>(MAX_VARIABLE_NAME_LENGTH) - 1)
             {
                 allLoaded = false;
             }
 
-            shaderUniform->name     = uniformName;
-            shaderUniform->count    = static_cast<unsigned int>(uniformCount);
-            shaderUniform->type     = ::glEnumToUniformType(uniformType);
-            shaderUniform->location = glGetUniformLocation(programId, uniformName);
+            *variable = {
+                .name       = uniformName,
+                .location   = glGetUniformLocation(programId, uniformName),
+                .type       = ::glEnumToVariableType(uniformType),
+                .count      = static_cast<uint16_t>(uniformCount)
+            };
         }
 
         return allLoaded;
@@ -601,14 +603,14 @@ namespace renderer
 
     // TODO(Karim): These need moving to generic ::renderer functionality
 
-    bool loadShaderVariables(Allocator* allocator, ShaderProgram* programs, size_t count)
+    bool loadShaderUniforms(Allocator* allocator, ShaderProgram* programs, size_t count)
     {
         size_t totalUniformCount{ 0 };
 
         for (size_t i = 0; i < count; ++i)
         {
             size_t uniformCount{ 0 };
-            if (loadShaderVariables(programs + i, &uniformCount, nullptr, nullptr))
+            if (loadShaderUniforms(programs + i, &uniformCount, nullptr, nullptr))
             {
                 totalUniformCount += uniformCount;
             }
@@ -619,13 +621,13 @@ namespace renderer
             return false;
         }
 
-        const size_t nameBufferSize = static_cast<size_t>(totalUniformCount * MAX_UNIFORM_NAME_LENGTH);
+        const size_t nameBufferSize = static_cast<size_t>(totalUniformCount * MAX_VARIABLE_NAME_LENGTH);
         allocator->requestMemory<uint64_t>(nameBufferSize);
         auto* uniformNameBuffer = allocator->requestMemoryArray<GLchar>(nameBufferSize, '\0');
 
         const size_t uniformBufferSize = static_cast<size_t>(totalUniformCount + 1);
         allocator->requestMemory<uint64_t>(uniformBufferSize);
-        auto* uniformBuffer = allocator->requestMemoryArray<ShaderUniformVariable>(uniformBufferSize);
+        auto* uniformBuffer = allocator->requestMemoryArray<ShaderVariable>(uniformBufferSize);
 
         bool allLoaded{ true };
         for (size_t i = 0; i < count; ++i)
@@ -633,13 +635,13 @@ namespace renderer
             ShaderProgram* program = programs + i;
 
             size_t uniformCount{ 0 };
-            if (!loadShaderVariables(program, &uniformCount, nullptr, nullptr))
+            if (!loadShaderUniforms(program, &uniformCount, nullptr, nullptr))
             {
                 allLoaded = false;
                 continue;
             }
 
-            if (!loadShaderVariables(program, nullptr, uniformNameBuffer, uniformBuffer))
+            if (!loadShaderUniforms(program, nullptr, uniformNameBuffer, uniformBuffer))
             {
                 allLoaded = false;
                 continue;
@@ -649,17 +651,129 @@ namespace renderer
             program->uniformCount   = uniformCount;
 
             uniformBuffer       += uniformCount;
-            uniformNameBuffer   += uniformCount * MAX_UNIFORM_NAME_LENGTH;
+            uniformNameBuffer   += uniformCount * MAX_VARIABLE_NAME_LENGTH;
         }
 
         return allLoaded;
     }
 
-    bool loadShaderVariables(Allocator* allocator, const MutableGraphicsMemory& memory)
+    bool loadShaderUniforms(Allocator* allocator, const MutableGraphicsMemory& memory)
     {
         const auto shaderPrograms = memory.shaderPrograms;
 
-        return loadShaderVariables(allocator, shaderPrograms.data(), shaderPrograms.size());
+        return loadShaderUniforms(allocator, shaderPrograms.data(), shaderPrograms.size());
+    }
+
+    bool loadShaderAttributes(const ShaderProgram* program, size_t* count, char* nameBuffer, ShaderVariable* buffer)
+    {
+        if (!program || !isActive(program))
+        {
+            return false;
+        }
+
+        const GLuint programId = program->id;
+
+        GLint attributeCount{ 0 };
+        glGetProgramiv(programId, GL_ACTIVE_ATTRIBUTES, &attributeCount);
+
+        if (count)
+        {
+            *count = static_cast<size_t>(attributeCount);
+        }
+
+        if (!nameBuffer || !buffer)
+        {
+            return true;
+        }
+
+        bool allLoaded{ true };
+        for (GLint i = 0; i < attributeCount; ++i)
+        {
+            GLchar* attributeName = nameBuffer + ( i * MAX_VARIABLE_NAME_LENGTH);
+
+            GLsizei nameLength  { 0 };
+            GLint count         { 0 };
+            GLenum attributeType{ GL_NONE };
+
+            glGetActiveAttrib(
+                programId,
+                static_cast<GLuint>(i),
+                static_cast<GLsizei>(MAX_VARIABLE_NAME_LENGTH),
+                &nameLength,
+                &count,
+                &attributeType,
+                attributeName);
+
+            if (nameLength > static_cast<GLsizei>(MAX_VARIABLE_NAME_LENGTH) - 1)
+            {
+                allLoaded = false;
+            }
+
+            *(buffer + i) = {
+                .name       = attributeName,
+                .location   = glGetAttribLocation(programId, attributeName),
+                .type       = ::glEnumToVariableType(attributeType),
+                .count      = static_cast<uint16_t>(attributeCount)
+            };
+        }
+
+        return allLoaded;
+    }
+
+    bool loadShaderAttributes(Allocator* allocator, ShaderProgram* programs, size_t count)
+    {
+        size_t totalAttributeCount{ 0 };
+
+        for (size_t i = 0; i < count; ++i)
+        {
+            size_t attributeCount{ 0 };
+            if (loadShaderAttributes(programs + i, &attributeCount, nullptr, nullptr))
+            {
+                totalAttributeCount += attributeCount;
+            }
+        }
+
+        const size_t namesBufferSize{ totalAttributeCount * MAX_VARIABLE_NAME_LENGTH };
+        allocator->requestMemory<uint64_t>(namesBufferSize);
+        auto* namesBuffer = allocator->requestMemoryArray<GLchar>(namesBufferSize, '\0');
+
+        const size_t bufferSize = totalAttributeCount + 1;
+        allocator->requestMemory<uint64_t>(bufferSize);
+        auto* buffer = allocator->requestMemoryArray<ShaderVariable>(bufferSize);
+
+        bool allLoaded{ true };
+        for (size_t i = 0; i < count; ++i)
+        {
+            ShaderProgram* shaderProgram = programs + i;
+
+            size_t attributeCount{ 0 };
+            if (!loadShaderAttributes(shaderProgram, &attributeCount, nullptr, nullptr))
+            {
+                allLoaded = false;
+                continue;
+            }
+
+            if (!loadShaderAttributes(shaderProgram, &attributeCount, namesBuffer, buffer))
+            {
+                allLoaded = false;
+                continue;
+            }
+
+            shaderProgram->attributes       = buffer;
+            shaderProgram->attributeCount   = attributeCount;
+
+            buffer      += attributeCount;
+            namesBuffer += attributeCount * MAX_VARIABLE_NAME_LENGTH;
+        }
+
+        return allLoaded;
+    }
+
+    bool loadShaderAttributes(Allocator* allocator, const MutableGraphicsMemory& memory)
+    {
+        const auto shaderPrograms = memory.shaderPrograms;
+
+        return loadShaderAttributes(allocator, shaderPrograms.data(), shaderPrograms.size());
     }
 
     bool loadEntityBindings(const ShaderProgram* program, EntityBindings* entityBindings)
@@ -671,7 +785,7 @@ namespace renderer
 
         for (size_t i = 0; i < program->uniformCount; ++i)
         {
-            const ShaderUniformVariable* uniform = program->uniforms + i;
+            const ShaderVariable* uniform = program->uniforms + i;
 
             switch (uniform->type)
             {
@@ -730,31 +844,31 @@ namespace renderer
             {
                 allLoaded = false;
 
-                const auto shaderUniformVariables = memory.shaderUniformVariables;
+                const auto shaderUniforms = memory.shaderUniforms;
 
                 if (!entityBindings->transformUniform)
                 {
-                    entityBindings->transformUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                    entityBindings->transformUniform = ( shaderUniforms.data() + shaderUniforms.size() - 1 );
                 }
 
                 if (!entityBindings->uvUniform)
                 {
-                    entityBindings->uvUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                    entityBindings->uvUniform = ( shaderUniforms.data() + shaderUniforms.size() - 1 );
                 }
 
                 if (!entityBindings->materialColorUniform)
                 {
-                    entityBindings->materialColorUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                    entityBindings->materialColorUniform = ( shaderUniforms.data() + shaderUniforms.size() - 1 );
                 }
 
                 if (!entityBindings->tileSizeUniform)
                 {
-                    entityBindings->tileSizeUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                    entityBindings->tileSizeUniform = ( shaderUniforms.data() + shaderUniforms.size() - 1 );
                 }
 
                 if (!entityBindings->layerUniform)
                 {
-                    entityBindings->layerUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                    entityBindings->layerUniform = ( shaderUniforms.data() + shaderUniforms.size() - 1 );
                 }
             }
 
@@ -928,21 +1042,21 @@ namespace renderer
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
     }
 
-    void setVertexLayout(const RenderBatch* batch, const LocationsDescriptor* descriptor, const MeshBufferIndices* buffers)
+    void setVertexLayout(const ShaderProgram* program, const EntityBindings* entityBindings, unsigned int vertexArray, const MeshBufferIndices* buffers)
     {
-        glUseProgram(batch->shaderProgram);
-        glBindVertexArray(batch->vertexArray);
+        glUseProgram(program->id);
+        glBindVertexArray(vertexArray);
         glBindBuffer(GL_ARRAY_BUFFER, buffers->vertex);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers->triangle);
 
-        glEnableVertexAttribArray(descriptor->positionLocation);
+        /*glEnableVertexAttribArray(descriptor->positionLocation);
         glVertexAttribPointer(descriptor->positionLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
 
         glEnableVertexAttribArray(descriptor->colorLocation);
         glVertexAttribPointer(descriptor->colorLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(sizeof(glm::vec3)));
 
         glEnableVertexAttribArray(descriptor->uvLocation);
-        glVertexAttribPointer(descriptor->uvLocation, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(2 * sizeof(glm::vec3)));
+        glVertexAttribPointer(descriptor->uvLocation, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(2 * sizeof(glm::vec3)));*/
     }
 
     void setTextureParameters(unsigned int texture, unsigned int target, const ZeroXBridge::Texture* parameters, bool unbind /* = false */)
@@ -978,15 +1092,15 @@ namespace renderer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
-    void renderBatch(const RenderBatch* batch)
+    void renderBatch(const ShaderProgram* shaderProgram, unsigned int vertexArray)
     {
-        glUseProgram(batch->shaderProgram);
-        glBindVertexArray(batch->vertexArray);
+        glUseProgram(shaderProgram->id);
+        glBindVertexArray(vertexArray);
     }
 
-    void renderEntity(const ZeroXBridge::RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit)
+    void renderEntity(const ZeroXBridge::RenderEntity* entity, const EntityBindings* entityBindings, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit)
     {
-        const ZeroXBridge::Transform& entityTransform = entity->transform;
+        /*const ZeroXBridge::Transform& entityTransform = entity->transform;
 
         glm::mat4 entityLocalToWorld    = entityTransform.localToWorld;
         glm::vec4& position             = entityLocalToWorld[3];
@@ -1009,7 +1123,7 @@ namespace renderer
         glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(material.uvOffset));
         glUniform1ui(descriptor->textureLayerLocation, entity->layer);
 
-        glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);*/
     }
 
     void freeBuffers(const MutableGraphicsMemory& memory)

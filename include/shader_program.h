@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shader_uniform_variable.h"
+#include "shader_variable.h"
 
 namespace renderer
 {
@@ -15,7 +15,9 @@ namespace renderer
 		LinkStatus linkStatus			{ LinkStatus::UNLINKED };
 		const size_t* shaderIndices		{ nullptr };
 		size_t shaderCount				{ 0 };
-		ShaderUniformVariable* uniforms	{ nullptr };
+		ShaderVariable* attributes		{ nullptr };
+		size_t attributeCount			{ 0 };
+		ShaderVariable* uniforms		{ nullptr };
 		size_t uniformCount				{ 0 };
 		unsigned int id					{ 0 };
 		unsigned int refCount			{ 0 };
