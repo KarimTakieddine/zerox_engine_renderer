@@ -1,3 +1,5 @@
+#include <string>
+
 #include <glad/gl.h>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -788,6 +790,44 @@ namespace renderer
             return false;
         }
 
+        for (size_t i = 0; i < program->attributeCount; ++i)
+        {
+            const ShaderVariable* attribute = program->attributes + i;
+
+            switch (attribute->type)
+            {
+            case GPUDataType::VEC_2:
+                if (attribute->count == 1)
+                {
+                    entityBindings->uvAttribute = attribute;
+                }
+                break;
+            case GPUDataType::VEC_3:
+                if (attribute->count == 1)
+                {
+                    const std::string name(attribute->name);
+
+                    if (name == "color")
+                    {
+                        entityBindings->colorAttribute = attribute;
+                    }
+                    else if (name == "position")
+                    {
+                        entityBindings->positionAttribute = attribute;
+                    }
+                }
+                break;
+            case GPUDataType::VEC_4:
+                if (attribute->count == 1)
+                {
+                    entityBindings->colorAttribute = attribute;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
         for (size_t i = 0; i < program->uniformCount; ++i)
         {
             const ShaderVariable* uniform = program->uniforms + i;
@@ -849,7 +889,23 @@ namespace renderer
             {
                 allLoaded = false;
 
-                const auto shaderUniforms = memory.shaderUniforms;
+                const auto shaderAttributes = memory.shaderAttributes;
+                const auto shaderUniforms   = memory.shaderUniforms;
+
+                if (!entityBindings->positionAttribute)
+                {
+                    entityBindings->positionAttribute = ( shaderAttributes.data() + shaderAttributes.size() - 1 );
+                }
+
+                if (!entityBindings->colorAttribute)
+                {
+                    entityBindings->colorAttribute = ( shaderAttributes.data() + shaderAttributes.size() - 1 );
+                }
+
+                if (!entityBindings->uvAttribute)
+                {
+                    entityBindings->uvAttribute = ( shaderAttributes.data() + shaderAttributes.size() - 1 );
+                }
 
                 if (!entityBindings->transformUniform)
                 {

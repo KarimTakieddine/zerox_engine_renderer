@@ -23,17 +23,17 @@ namespace renderer
         DynamicSpan<std::byte, IsConst> meshSpan;
         DynamicSpan<Shader, IsConst> shaders;
         DynamicSpan<ShaderProgram, IsConst> shaderPrograms;
+        DynamicSpan<Eye, IsConst> cameraEye;
+        DynamicSpan<Frustum, IsConst> cameraFrustum;
+        DynamicSpan<Camera, IsConst> camera;
+        DynamicSpan<unsigned int, IsConst> uniformBuffer;
+        DynamicSpan<UniformBufferSegment, IsConst> uniformBufferSegments;
         DynamicSpan<char, IsConst> shaderAttributeNames;
         DynamicSpan<ShaderVariable, IsConst> shaderAttributes;
         DynamicSpan<char, IsConst> shaderUniformNames;
         DynamicSpan<ShaderVariable, IsConst> shaderUniforms;
         DynamicSpan<EntityBindings, IsConst> renderEntityBindings;
         DynamicSpan<LocationsDescriptor, IsConst> locationsDescriptors;
-        DynamicSpan<Eye, IsConst> cameraEye;
-        DynamicSpan<Frustum, IsConst> cameraFrustum;
-        DynamicSpan<Camera, IsConst> camera;
-        DynamicSpan<unsigned int, IsConst> uniformBuffer;
-        DynamicSpan<UniformBufferSegment, IsConst> uniformBufferSegments;
         DynamicSpan<uint64_t, IsConst> renderBatchCount;
         DynamicSpan<std::byte, IsConst> renderBatchSpan;
     };
@@ -50,17 +50,17 @@ namespace renderer
             memory.meshSpan,
             memory.shaders,
             memory.shaderPrograms,
+            memory.cameraEye,
+            memory.cameraFrustum,
+            memory.camera,
+            memory.uniformBuffer,
+            memory.uniformBufferSegments,
             memory.shaderAttributeNames,
             memory.shaderAttributes,
             memory.shaderUniformNames,
             memory.shaderUniforms,
             memory.renderEntityBindings,
             memory.locationsDescriptors,
-            memory.cameraEye,
-            memory.cameraFrustum,
-            memory.camera,
-            memory.uniformBuffer,
-            memory.uniformBufferSegments,
             memory.renderBatchCount,
             memory.renderBatchSpan
         };
