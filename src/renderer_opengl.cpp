@@ -1079,14 +1079,17 @@ namespace renderer
         glBindBuffer(GL_ARRAY_BUFFER, buffers->vertex);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers->triangle);
 
-        /*glEnableVertexAttribArray(descriptor->positionLocation);
-        glVertexAttribPointer(descriptor->positionLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+        const ShaderVariable* positionAttribute = entityBindings->positionAttribute;
+        glEnableVertexAttribArray(positionAttribute->location);
+        glVertexAttribPointer(positionAttribute->location, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
 
-        glEnableVertexAttribArray(descriptor->colorLocation);
-        glVertexAttribPointer(descriptor->colorLocation, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(sizeof(glm::vec3)));
+        const ShaderVariable* colorAttribute = entityBindings->colorAttribute;
+        glEnableVertexAttribArray(colorAttribute->location);
+        glVertexAttribPointer(colorAttribute->location, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(sizeof(glm::vec3)));
 
-        glEnableVertexAttribArray(descriptor->uvLocation);
-        glVertexAttribPointer(descriptor->uvLocation, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(2 * sizeof(glm::vec3)));*/
+        const ShaderVariable* uvAttribute = entityBindings->uvAttribute;
+        glEnableVertexAttribArray(uvAttribute->location);
+        glVertexAttribPointer(uvAttribute->location , 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const void*)(2 * sizeof(glm::vec3)));
     }
 
     void setTextureParameters(unsigned int texture, unsigned int target, const ZeroXBridge::Texture* parameters, bool unbind /* = false */)

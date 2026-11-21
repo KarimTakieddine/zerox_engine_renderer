@@ -214,6 +214,8 @@ namespace renderer
             const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(renderBatchCursor.getOffset());
             renderBatchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
 
+
+
             /*const ShaderProgram* shaderProgram      = memory.shaderPrograms.data() + shaderProgramIndex;
             const EntityBindings* entityBindings    = memory.renderEntityBindings.data() + shaderProgramIndex;
 
