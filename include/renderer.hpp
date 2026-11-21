@@ -39,7 +39,6 @@ namespace renderer
     {
         const size_t* shaderIndices { nullptr };
         size_t shaderCount          { 0 };
-        size_t programIndex         { 0 };
     };
 
     struct ShaderLocationsLink
@@ -116,11 +115,11 @@ namespace renderer
         graphicsMemory.textures                     = textures;
         cursor.step_array<unsigned int>(textures.size());
 
-        DynamicSpan<unsigned int, IsConst> shaders  = memoryView.template read_contiguous_array<Shader>(cursor.getOffset());
-        graphicsMemory.shaders                      = shaders;
+        DynamicSpan<Shader, IsConst> shaders    = memoryView.template read_contiguous_array<Shader>(cursor.getOffset());
+        graphicsMemory.shaders                  = shaders;
         cursor.step_array<Shader>(shaders.size());
 
-        DynamicSpan<unsigned int, IsConst> shaderPrograms   = memoryView.template read_contiguous_array<ShaderProgram>(cursor.getOffset());
+        DynamicSpan<ShaderProgram, IsConst> shaderPrograms  = memoryView.template read_contiguous_array<ShaderProgram>(cursor.getOffset());
         graphicsMemory.shaderPrograms                       = shaderPrograms;
         cursor.step_array<ShaderProgram>(shaderPrograms.size());
 
