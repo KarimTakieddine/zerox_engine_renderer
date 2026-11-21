@@ -6,11 +6,11 @@
 #include "camera.h"
 #include "eye.h"
 #include "frustum.h"
-#include "locations_descriptor.h"
 #include "mesh.hpp"
 #include "render_command_types.h"
 #include "renderer.hpp"
 #include "shader.h"
+#include "shader_program.h"
 #include "uniform_buffer_segment.h"
 
 namespace renderer
@@ -62,19 +62,13 @@ namespace renderer
     void allocateShaders(Allocator* allocator, size_t count)
     {
         allocator->requestMemory<uint64_t>(count);
-        allocator->requestMemoryArray<unsigned int>(count);
+        allocator->requestMemoryArray<Shader>(count);
     }
 
     void allocateShaderPrograms(Allocator* allocator, size_t count)
     {
         allocator->requestMemory<uint64_t>(count);
-        allocator->requestMemoryArray<unsigned int>(count);
-    }
-
-    void allocateLocationsDescriptors(Allocator* allocator, size_t count)
-    {
-        allocator->requestMemory<uint64_t>(count);
-        allocator->requestMemoryArray<LocationsDescriptor>(count);
+        allocator->requestMemoryArray<ShaderProgram>(count);
     }
 
     void allocateCamera(Allocator* allocator)
@@ -151,39 +145,39 @@ namespace renderer
         allocateBuffers(allocator, config->bufferCount);
         allocateVertexArrays(allocator, config->vertexArrayCount);
         allocateTextures(allocator, config->textureCount + config->textureArrayCount);
+        allocateMeshes(allocator, config->meshCount, config->meshes);
         allocateShaders(allocator, config->shaderCount);
         allocateShaderPrograms(allocator, config->shaderProgramCount);
-        allocateMeshes(allocator, config->meshCount, config->meshes);
-        allocateLocationsDescriptors(allocator, config->locationsDescriptorCount);
         allocateCamera(allocator);
         allocateUniformBuffer(allocator, 4);
-        allocateRenderBatchCount(allocator);
     }
 
-    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config)
+    void initializeGraphicsResources(Allocator* allocator, const GraphicsConfig* config)
     {
-        generateBuffers(memory);
-        generateVertexArrays(memory);
-        generateTextures(memory);
-        generateShaders(memory, config->shaderCount, config->shaders);
-        generateShaderPrograms(memory);
-        generateMeshes(memory);
+        MutableGraphicsMemory globalMemory = readGraphicsMemory(allocator);
 
-        for (size_t i = 0; i < config->compileStepCount; ++i)
-        {
-            const ShaderCompileStep* compileStep = config->shaderCompileSteps + i;
+        generateBuffers(globalMemory);
+        generateVertexArrays(globalMemory);
+        generateTextures(globalMemory);
+        generateMeshes(globalMemory);
+        loadShaders(globalMemory, config->shaders, config->shaderCount);
+        loadShaderPrograms(globalMemory, config->shaderCompileSteps, config->compileStepCount);
+        setCameraEye(globalMemory, config->cameraEye);
+        setCameraFrustum(globalMemory, config->cameraFrustum);
+        updateCamera(globalMemory);
+        generateUniformBuffer(globalMemory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
+        mapCameraUniforms(globalMemory);
+        loadShaderAttributes(allocator, globalMemory);
+        loadShaderUniforms(allocator, globalMemory);
 
-            compileShaderProgram(
-                memory,
-                compileStep->programIndex,
-                compileStep->shaderCount,
-                compileStep->shaderIndices);
-        }
+        auto graphicsMemory = freezeGraphicsMemory(readGraphicsMemory(allocator));
 
-        auto graphicsMemory = freezeGraphicsMemory(memory);
+        loadEntityBindings(allocator, graphicsMemory);
+        allocateRenderBatchCount(allocator);
 
+        uploadMeshes(graphicsMemory);
         uploadTextures(graphicsMemory, config->textureCount, config->textures);
-        
+
         for (size_t i = 0; i < config->textureArrayCount; ++i)
         {
             const TextureArray* textureArray = config->textureArrays + i;
@@ -195,22 +189,6 @@ namespace renderer
                 textureArray->textureCount,
                 textureArray->paths);
         }
-
-        uploadMeshes(graphicsMemory);
-
-        for (size_t i = 0; i < config->locationsLinkCount; ++i)
-        {
-            const ShaderLocationsLink* link = config->shaderLocationsLinks + i;
-
-            setShaderLocations(memory, link->shaderProgramIndex, link->locationsIndex);
-        }
-
-        setCameraEye(memory, config->cameraEye);
-        setCameraFrustum(memory, config->cameraFrustum);
-        updateCamera(memory);
-
-        generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
-        mapCameraUniforms(memory);
     }
 
     void freeGraphicsResources(const MutableGraphicsMemory& memory)
@@ -230,22 +208,22 @@ namespace renderer
 
         for (uint64_t i = 0; i < batchCount; ++i)
         {
-            const auto batch = renderBatchView.read_object<RenderBatch>(renderBatchCursor.getOffset());
+            const auto* batch = renderBatchView.read_object<RenderBatch>(renderBatchCursor.getOffset()).data();
             renderBatchCursor.step<RenderBatch>();
 
             const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(renderBatchCursor.getOffset());
             renderBatchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
 
-            renderBatch(batch.data());
+            size_t shaderProgramIndex = static_cast<size_t>(batch->shaderProgramIndex);
+
+            const ShaderProgram* shaderProgram      = memory.shaderPrograms.data() + shaderProgramIndex;
+            const EntityBindings* entityBindings    = memory.renderEntityBindings.data() + shaderProgramIndex;
+
+            renderBatch(shaderProgram, *(memory.vertexArrayObjects.data() + static_cast<size_t>(batch->vertexArrayIndex)));
 
             for (size_t j = 0; j < entities.size(); ++j)
             {
-                renderEntity(
-                    entities.data() + j,
-                    memory.locationsDescriptors.data() + batch.data()->descriptorIndex,
-                    batch.data()->drawMode, 
-                    batch.data()->elementCount,
-                    pixelsPerUnit);
+                renderEntity(entities.data() + j, entityBindings, batch->drawMode, batch->elementCount, pixelsPerUnit);
             }
         }
     }
@@ -253,20 +231,25 @@ namespace renderer
     void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit)
     {
         uploadUniformBuffer(memory);
+
         renderBatches(memory, pixelsPerUnit);
     }
 
     void handleAllocateBatchCommand(Allocator* allocator, const MutableGraphicsMemory& memory, const AllocateBatchCommand& command)
     {
-        auto* renderBatch = allocator->requestMemory<RenderBatch>(RenderBatch{
-            .descriptorIndex    = command.locationsIndex,
-            .shaderProgram      = memory.shaderPrograms.data()[command.shaderProgramIndex],
-            .vertexArray        = memory.vertexArrayObjects.data()[command.vertexArrayIndex],
-            .drawMode           = static_cast<DrawMode>(command.drawMode)
+        auto* batch = allocator->requestMemory<RenderBatch>(RenderBatch{
+            .entityCount        = command.entityCount,
+            .drawMode           = command.drawMode,
+            .meshIndex          = command.meshIndex,
+            .shaderProgramIndex = command.shaderProgramIndex,
+            .vertexArrayIndex   = command.vertexArrayIndex,
+            .elementCount       = command.elementCount
         });
 
-        allocator->requestMemory<uint64_t>(command.entityCount);
-        allocator->requestMemoryArray<ZeroXBridge::RenderEntity>(command.entityCount);
+        const size_t entityCount = batch->entityCount;
+
+        allocator->requestMemory<uint64_t>(entityCount);
+        allocator->requestMemoryArray<ZeroXBridge::RenderEntity>(entityCount);
 
         ConstMemoryView meshView(memory.meshSpan);
         MemoryCursor<16> meshCursor;
@@ -274,7 +257,7 @@ namespace renderer
         const auto* meshCount = meshView.read_object<uint64_t>(meshCursor.getOffset()).data();
         meshCursor.step<uint64_t>();
 
-        for (size_t i = 0; i < command.meshIndex; ++i)
+        for (size_t i = 0; i < batch->meshIndex; ++i)
         {
             meshCursor.step<MeshBufferIndices>();
 
@@ -292,12 +275,23 @@ namespace renderer
         meshCursor.step_array<Vertex>(vertices.size());
 
         const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
+        meshCursor.step_array<unsigned int>(triangles.size());
 
-        renderBatch->elementCount = triangles.size();
+        const auto triangleCount = static_cast<unsigned int>(triangles.size());
+        if (command.elementCount != triangleCount)
+        {
+            batch->elementCount = triangleCount;
+        }
+
+        const ShaderProgram* shaderProgram  = memory.shaderPrograms.data() + static_cast<size_t>(batch->shaderProgramIndex);
+        const unsigned int vertexArray      = *(memory.vertexArrayObjects.data() + static_cast<size_t>(batch->vertexArrayIndex));
+
+        renderBatch(shaderProgram, vertexArray);
 
         setVertexLayout(
-            renderBatch,
-            memory.locationsDescriptors.data() + command.locationsIndex,
+            shaderProgram,
+            memory.renderEntityBindings.data() + static_cast<size_t>(batch->shaderProgramIndex),
+            vertexArray,
             buffers);
 
         ++(*memory.renderBatchCount.data());

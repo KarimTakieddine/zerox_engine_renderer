@@ -30,7 +30,7 @@ namespace renderer
     struct Command;
     struct RenderBuffer;
 
-    static constexpr size_t ALLOCATOR_SIZE      = 1 << 13;
+    static constexpr size_t ALLOCATOR_SIZE      = 1 << 14;
     static constexpr uint64_t MEMORY_ALIGNMENT  = 16;
 
     using Allocator = BumpAllocator<16>;
@@ -39,7 +39,6 @@ namespace renderer
     {
         const size_t* shaderIndices { nullptr };
         size_t shaderCount          { 0 };
-        size_t programIndex         { 0 };
     };
 
     struct ShaderLocationsLink
@@ -65,13 +64,12 @@ namespace renderer
     {
         const Mesh* meshes                              { nullptr };
         const Texture* textures                         { nullptr };
-        const Shader* shaders                           { nullptr };
+        const ShaderLoadInfo* shaders                   { nullptr };
         const Eye* cameraEye                            { nullptr };
         const Frustum* cameraFrustum                    { nullptr };
         const char* const cameraUniformBuffer           { nullptr };
         const char* const* cameraUniformNames           { nullptr };
         const ShaderCompileStep* shaderCompileSteps     { nullptr };
-        const ShaderLocationsLink* shaderLocationsLinks { nullptr };
         const TextureArray* textureArrays               { nullptr };
         size_t meshCount                                { 0 };
         size_t bufferCount                              { 0 };
@@ -80,9 +78,7 @@ namespace renderer
         size_t textureArrayCount                        { 0 };
         size_t shaderCount                              { 0 };
         size_t shaderProgramCount                       { 0 };
-        size_t locationsDescriptorCount                 { 0 };
         size_t compileStepCount                         { 0 };
-        size_t locationsLinkCount                       { 0 };
     };
 
     template<bool IsConst = false>
@@ -116,14 +112,6 @@ namespace renderer
         graphicsMemory.textures                     = textures;
         cursor.step_array<unsigned int>(textures.size());
 
-        DynamicSpan<unsigned int, IsConst> shaders  = memoryView.template read_contiguous_array<unsigned int>(cursor.getOffset());
-        graphicsMemory.shaders                      = shaders;
-        cursor.step_array<unsigned int>(shaders.size());
-
-        DynamicSpan<unsigned int, IsConst> shaderPrograms   = memoryView.template read_contiguous_array<unsigned int>(cursor.getOffset());
-        graphicsMemory.shaderPrograms                       = shaderPrograms;
-        cursor.step_array<unsigned int>(shaderPrograms.size());
-
         const uint64_t meshDataOffset   = cursor.getOffset();
         const uint64_t meshCount        = *memoryView.template read_object<uint64_t>(meshDataOffset).data();
         cursor.step<uint64_t>();
@@ -141,9 +129,13 @@ namespace renderer
 
         graphicsMemory.meshSpan = allocatorSpan.subspan(meshDataOffset, cursor.getOffset() - meshDataOffset);
 
-        DynamicSpan<LocationsDescriptor, IsConst> locationsDescriptors  = memoryView.template read_contiguous_array<LocationsDescriptor>(cursor.getOffset());
-        graphicsMemory.locationsDescriptors                             = locationsDescriptors;
-        cursor.step_array<LocationsDescriptor>(locationsDescriptors.size());
+        DynamicSpan<Shader, IsConst> shaders    = memoryView.template read_contiguous_array<Shader>(cursor.getOffset());
+        graphicsMemory.shaders                  = shaders;
+        cursor.step_array<Shader>(shaders.size());
+
+        DynamicSpan<ShaderProgram, IsConst> shaderPrograms  = memoryView.template read_contiguous_array<ShaderProgram>(cursor.getOffset());
+        graphicsMemory.shaderPrograms                       = shaderPrograms;
+        cursor.step_array<ShaderProgram>(shaderPrograms.size());
 
         DynamicSpan<Eye, IsConst> cameraEye = memoryView.template read_object<Eye>(cursor.getOffset());
         graphicsMemory.cameraEye            = cameraEye;
@@ -165,6 +157,36 @@ namespace renderer
         graphicsMemory.uniformBufferSegments                                = uniformBufferSegments;
         cursor.step_array<UniformBufferSegment>(uniformBufferSegments.size());
 
+        if (allocator->getLiveSizeInBytes() == cursor.getOffset())
+        {
+            return graphicsMemory;
+        }
+
+        DynamicSpan<char, IsConst> shaderAttributeNames = memoryView.template read_contiguous_array<char>(cursor.getOffset());
+        graphicsMemory.shaderAttributeNames             = shaderAttributeNames;
+        cursor.step_array<char>(shaderAttributeNames.size());
+
+        DynamicSpan<ShaderVariable, IsConst> shaderAttributes   = memoryView.template read_contiguous_array<ShaderVariable>(cursor.getOffset());
+        graphicsMemory.shaderAttributes                         = shaderAttributes;
+        cursor.step_array<ShaderVariable>(shaderAttributes.size());
+
+        DynamicSpan<char, IsConst> shaderUniformNames   = memoryView.template read_contiguous_array<char>(cursor.getOffset());
+        graphicsMemory.shaderUniformNames               = shaderUniformNames;
+        cursor.step_array<char>(shaderUniformNames.size());
+
+        DynamicSpan<ShaderVariable, IsConst> shaderUniforms = memoryView.template read_contiguous_array<ShaderVariable>(cursor.getOffset());
+        graphicsMemory.shaderUniforms                       = shaderUniforms;
+        cursor.step_array<ShaderVariable>(shaderUniforms.size());
+
+        if (allocator->getLiveSizeInBytes() == cursor.getOffset())
+        {
+            return graphicsMemory;
+        }
+
+        DynamicSpan<EntityBindings, IsConst> renderEntityBindings   = memoryView.template read_contiguous_array<EntityBindings>(cursor.getOffset());
+        graphicsMemory.renderEntityBindings                         = renderEntityBindings;
+        cursor.step_array<EntityBindings>(renderEntityBindings.size());
+
         graphicsMemory.renderBatchCount = memoryView.template read_object<uint64_t>(cursor.getOffset());
         cursor.step<uint64_t>();
 
@@ -180,7 +202,6 @@ namespace renderer
     void allocateShaders(Allocator* allocator, size_t count);
     void allocateShaderPrograms(Allocator* allocator, size_t count);
     void allocateMeshes(Allocator* allocator, size_t count, const Mesh* meshes);
-    void allocateLocationsDescriptors(Allocator* allocator, size_t count);
     void allocateCamera(Allocator* allocator);
     void allocateUniformBuffer(Allocator* allocator, size_t segmentCount);
     void allocateRenderBatchCount(Allocator* allocator);
@@ -189,16 +210,42 @@ namespace renderer
 
     void generateBuffers(const MutableGraphicsMemory& memory);
     void generateVertexArrays(const MutableGraphicsMemory& memory);
+
     void generateTextures(const MutableGraphicsMemory& memory);
     bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const Texture* textures);
     bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles);
-    bool generateShaders(const MutableGraphicsMemory& memory, size_t count, const Shader* shaders);
-    void generateShaderPrograms(const MutableGraphicsMemory& memory);
-    bool compileShaderProgram(const MutableGraphicsMemory& memory, size_t index, size_t count, const size_t* indices);
+
+    bool createShader(Shader* shader, Shader::Type type);
+    bool compileShader(Shader* shader, const char* content);
+    bool loadShader(Shader* shader, const ShaderLoadInfo* loadInfo);
+    bool loadShaders(const MutableGraphicsMemory& memory, const ShaderLoadInfo* loadInfo, size_t count);
+    void unloadShader(Shader* shader);
+    void unloadShaders(Shader* shaders, size_t count);
+    void unloadShaders(const MutableGraphicsMemory& memory);
+
+    bool createShaderProgram(ShaderProgram* program);
+    bool linkShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program, const size_t* indices, size_t count);
+    bool loadShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program, const ShaderCompileStep* shaderCompileStep);
+    bool loadShaderPrograms(const MutableGraphicsMemory& memory, const ShaderCompileStep* shaderCompileSteps, size_t compileStepCount);
+    void unloadShaderProgram(const MutableGraphicsMemory& memory, ShaderProgram* program);
+    void unloadShaderPrograms(const MutableGraphicsMemory& memory, ShaderProgram* programs, size_t count);
+    void unloadShaderPrograms(const MutableGraphicsMemory& memory);
+
+    bool loadShaderUniforms(const ShaderProgram* program, size_t* count, char* nameBuffer, ShaderVariable* buffer);
+    bool loadShaderUniforms(Allocator* allocator, ShaderProgram* programs, size_t count);
+    bool loadShaderUniforms(Allocator* allocator, const MutableGraphicsMemory& memory);
+
+    bool loadShaderAttributes(const ShaderProgram* program, size_t* count, char* nameBuffer, ShaderVariable* buffer);
+    bool loadShaderAttributes(Allocator* allocator, ShaderProgram* programs, size_t count);
+    bool loadShaderAttributes(Allocator* allocator, const MutableGraphicsMemory& memory);
+
+    bool loadEntityBindings(const ShaderProgram* program, EntityBindings* entityBindings);
+    bool loadEntityBindings(Allocator* allocator, const ConstGraphicsMemory& memory, const ShaderProgram* programs, size_t count);
+    bool loadEntityBindings(Allocator* allocator, const ConstGraphicsMemory& memory);
+
     void generateMeshes(const MutableGraphicsMemory& memory);
     void uploadMeshes(const ConstGraphicsMemory& memory);
     void uploadMesh(const MeshSpan<true>& meshSpan);
-    bool setShaderLocations(const MutableGraphicsMemory& memory, size_t programIndex, size_t descriptorIndex);
     void setCameraEye(const MutableGraphicsMemory& memory, const Eye* eye);
     void setCameraFrustum(const MutableGraphicsMemory& memory, const Frustum* frustum);
     void updateCamera(const MutableGraphicsMemory& memory);
@@ -207,8 +254,8 @@ namespace renderer
     bool generateUniformBuffer(const MutableGraphicsMemory& memory, size_t programIndex, const char* name, const char* const* names);
     bool mapCameraUniforms(const MutableGraphicsMemory& memory);
     void uploadUniformBuffer(const ConstGraphicsMemory& memory);
-    void setVertexLayout(const RenderBatch* batch, const LocationsDescriptor* descriptor, const MeshBufferIndices* buffers);
-    void initializeGraphicsResources(const MutableGraphicsMemory& memory, const GraphicsConfig* config);
+    void setVertexLayout(const ShaderProgram* program, const EntityBindings* entityBindings, unsigned int vertexArray, const MeshBufferIndices* buffers);
+    void initializeGraphicsResources(Allocator* allocator, const GraphicsConfig* config);
     void setTextureParameters(unsigned int texture, unsigned int target, const ZeroXBridge::Texture* parameters, bool unbind = false);
     void initializeRenderBuffer(RenderBuffer* buffer);
     void destroyRenderBuffer(const RenderBuffer* buffer);
@@ -224,8 +271,8 @@ namespace renderer
 
     void initializeGraphicsState();
     void clearFrameBuffer();
-    void renderEntity(const ZeroXBridge::RenderEntity* entity, const LocationsDescriptor* descriptor, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit);
-    void renderBatch(const RenderBatch* batch);
+    void renderEntity(const ZeroXBridge::RenderEntity* entity, const EntityBindings* entityBindings, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit);
+    void renderBatch(const ShaderProgram* shaderProgram, unsigned int vertexArray);
     void renderBatches(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
     void render(const ConstGraphicsMemory& memory, const glm::vec2& pixelsPerUnit);
 

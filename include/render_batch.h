@@ -4,7 +4,7 @@
 
 namespace renderer
 {
-    enum class DrawMode : unsigned int
+    enum class DrawMode : uint64_t
     {
         TRIANGLES   = 0,
         LINES       = 1
@@ -12,10 +12,11 @@ namespace renderer
 
     struct alignas(16) RenderBatch
     {
-        uint64_t descriptorIndex    { 0 };
-        unsigned int shaderProgram  { 0 };
-        unsigned int vertexArray    { 0 };
-        int elementCount            { 0 };
+        size_t entityCount          { 0 };
         DrawMode drawMode           { DrawMode::TRIANGLES };
+        int meshIndex               { -1 };
+        int shaderProgramIndex      { -1 };
+        int vertexArrayIndex        { -1 };
+        unsigned int elementCount   { 0 };
     };
 }
