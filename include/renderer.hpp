@@ -200,7 +200,6 @@ namespace renderer
     void allocateShaders(Allocator* allocator, size_t count);
     void allocateShaderPrograms(Allocator* allocator, size_t count);
     void allocateMeshes(Allocator* allocator, size_t count, const Mesh* meshes);
-    void allocateLocationsDescriptors(Allocator* allocator, size_t count);
     void allocateCamera(Allocator* allocator);
     void allocateUniformBuffer(Allocator* allocator, size_t segmentCount);
     void allocateRenderBatchCount(Allocator* allocator);
@@ -245,7 +244,6 @@ namespace renderer
     void generateMeshes(const MutableGraphicsMemory& memory);
     void uploadMeshes(const ConstGraphicsMemory& memory);
     void uploadMesh(const MeshSpan<true>& meshSpan);
-    bool setShaderLocations(const MutableGraphicsMemory& memory, size_t programIndex, size_t descriptorIndex);
     void setCameraEye(const MutableGraphicsMemory& memory, const Eye* eye);
     void setCameraFrustum(const MutableGraphicsMemory& memory, const Frustum* frustum);
     void updateCamera(const MutableGraphicsMemory& memory);

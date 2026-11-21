@@ -964,37 +964,6 @@ namespace renderer
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
 
-    bool setShaderLocations(const MutableGraphicsMemory& memory, size_t programIndex, size_t descriptorIndex)
-    {
-        const auto shaderPrograms = memory.shaderPrograms;
-        if (programIndex >= shaderPrograms.size())
-        {
-            return false;
-        }
-
-        const GLuint shaderProgram = shaderPrograms.data()[programIndex].id;
-
-        const auto locationsDescriptors = memory.locationsDescriptors;
-        if (descriptorIndex >= locationsDescriptors.size())
-        {
-            return false;
-        }
-
-        auto* locationsDescriptor = locationsDescriptors.data() + descriptorIndex;
-
-        locationsDescriptor->positionLocation       = glGetAttribLocation(shaderProgram, "position");
-        locationsDescriptor->colorLocation          = glGetAttribLocation(shaderProgram, "color");
-        locationsDescriptor->uvLocation             = glGetAttribLocation(shaderProgram, "uv");
-        locationsDescriptor->uvScaleLocation        = glGetUniformLocation(shaderProgram, "uvScale");
-        locationsDescriptor->transformLocation      = glGetUniformLocation(shaderProgram, "transform");
-        locationsDescriptor->materialColorLocation  = glGetUniformLocation(shaderProgram, "materialColor");
-        locationsDescriptor->textureOffsetLocation  = glGetUniformLocation(shaderProgram, "textureOffset");
-        locationsDescriptor->tileSizeLocation       = glGetUniformLocation(shaderProgram, "tileSize");
-        locationsDescriptor->textureLayerLocation   = glGetUniformLocation(shaderProgram, "layer");
-
-        return true;
-    }
-
     bool generateUniformBuffer(const MutableGraphicsMemory& memory, size_t programIndex, const char* name, const char* const* names)
     {
         const auto* meshCount       = reinterpret_cast<const uint64_t*>(memory.meshSpan.data());

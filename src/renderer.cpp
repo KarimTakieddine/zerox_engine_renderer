@@ -6,7 +6,6 @@
 #include "camera.h"
 #include "eye.h"
 #include "frustum.h"
-#include "locations_descriptor.h"
 #include "mesh.hpp"
 #include "render_command_types.h"
 #include "renderer.hpp"
@@ -70,12 +69,6 @@ namespace renderer
     {
         allocator->requestMemory<uint64_t>(count);
         allocator->requestMemoryArray<ShaderProgram>(count);
-    }
-
-    void allocateLocationsDescriptors(Allocator* allocator, size_t count)
-    {
-        allocator->requestMemory<uint64_t>(count);
-        allocator->requestMemoryArray<LocationsDescriptor>(count);
     }
 
     void allocateCamera(Allocator* allocator)
