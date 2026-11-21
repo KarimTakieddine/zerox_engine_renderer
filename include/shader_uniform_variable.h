@@ -8,14 +8,17 @@ namespace renderer
 
 	enum class GPUDataType : int16_t
 	{
-		UNKNOWN		= 0,
-		INT			= 1,
-		UINT		= 2,
-		FLOAT		= 3,
-		VEC_2		= 4,
-		VEC_3		= 5,
-		VEC_4		= 6,
-		MAT_4		= 7
+		UNKNOWN				= 0,
+		INT					= 1,
+		UINT				= 2,
+		FLOAT				= 3,
+		UVEC_2				= 4,
+		VEC_2				= 5,
+		VEC_3				= 6,
+		VEC_4				= 7,
+		MAT_4				= 8,
+		SAMPLER_2D			= 9,
+		SAMPLER_2D_ARRAY	= 10
 	};
 
 	struct alignas(16) ShaderUniformVariable

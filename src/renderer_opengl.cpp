@@ -7,12 +7,9 @@
 #include <platform.h>
 #include <zerox_render_entity.h>
 
-#include "locations_descriptor.h"
 #include "opengl_allocator.h"
 #include "render_buffer.h"
 #include "renderer.hpp"
-#include "shader.h"
-#include "uniform_buffer_segment.h"
 
 namespace
 {
@@ -80,14 +77,17 @@ namespace
     {
         switch (type)
         {
-        case(GL_INT):           return renderer::GPUDataType::INT;
-        case(GL_UNSIGNED_INT):  return renderer::GPUDataType::UINT;
-        case(GL_FLOAT):         return renderer::GPUDataType::FLOAT;
-        case(GL_FLOAT_VEC2):    return renderer::GPUDataType::VEC_2;
-        case(GL_FLOAT_VEC3):    return renderer::GPUDataType::VEC_3;
-        case(GL_FLOAT_VEC4):    return renderer::GPUDataType::VEC_4;
-        case(GL_FLOAT_MAT4):    return renderer::GPUDataType::MAT_4;
-        default:                return renderer::GPUDataType::UNKNOWN;
+        case(GL_INT):               return renderer::GPUDataType::INT;
+        case(GL_UNSIGNED_INT):      return renderer::GPUDataType::UINT;
+        case(GL_FLOAT):             return renderer::GPUDataType::FLOAT;
+        case(GL_UNSIGNED_INT_VEC2): return renderer::GPUDataType::UVEC_2;
+        case(GL_FLOAT_VEC2):        return renderer::GPUDataType::VEC_2;
+        case(GL_FLOAT_VEC3):        return renderer::GPUDataType::VEC_3;
+        case(GL_FLOAT_VEC4):        return renderer::GPUDataType::VEC_4;
+        case(GL_FLOAT_MAT4):        return renderer::GPUDataType::MAT_4;
+        case(GL_SAMPLER_2D):        return renderer::GPUDataType::SAMPLER_2D;
+        case(GL_SAMPLER_2D_ARRAY):  return renderer::GPUDataType::SAMPLER_2D_ARRAY;
+        default:                    return renderer::GPUDataType::UNKNOWN;
         }
     }
 }
@@ -539,7 +539,7 @@ namespace renderer
         unloadShaderPrograms(memory, shaderPrograms.data(), shaderPrograms.size());
     }
 
-    bool loadShaderVariables(Allocator* allocator, ShaderProgram* program, size_t* uniformCount, char* uniformNameBuffer, ShaderUniformVariable* uniformBuffer)
+    bool loadShaderVariables(const ShaderProgram* program, size_t* uniformCount, char* uniformNameBuffer, ShaderUniformVariable* uniformBuffer)
     {
         if (!isActive(program))
         {
@@ -608,7 +608,7 @@ namespace renderer
         for (size_t i = 0; i < count; ++i)
         {
             size_t uniformCount{ 0 };
-            if (loadShaderVariables(allocator, programs + i, &uniformCount, nullptr, nullptr))
+            if (loadShaderVariables(programs + i, &uniformCount, nullptr, nullptr))
             {
                 totalUniformCount += uniformCount;
             }
@@ -623,7 +623,7 @@ namespace renderer
         allocator->requestMemory<uint64_t>(nameBufferSize);
         auto* uniformNameBuffer = allocator->requestMemoryArray<GLchar>(nameBufferSize, '\0');
 
-        const size_t uniformBufferSize = static_cast<size_t>(totalUniformCount);
+        const size_t uniformBufferSize = static_cast<size_t>(totalUniformCount + 1);
         allocator->requestMemory<uint64_t>(uniformBufferSize);
         auto* uniformBuffer = allocator->requestMemoryArray<ShaderUniformVariable>(uniformBufferSize);
 
@@ -633,13 +633,13 @@ namespace renderer
             ShaderProgram* program = programs + i;
 
             size_t uniformCount{ 0 };
-            if (loadShaderVariables(allocator, program, &uniformCount, nullptr, nullptr))
+            if (!loadShaderVariables(program, &uniformCount, nullptr, nullptr))
             {
                 allLoaded = false;
                 continue;
             }
 
-            if (!loadShaderVariables(allocator, program, nullptr, uniformNameBuffer, uniformBuffer))
+            if (!loadShaderVariables(program, nullptr, uniformNameBuffer, uniformBuffer))
             {
                 allLoaded = false;
                 continue;
@@ -660,6 +660,115 @@ namespace renderer
         const auto shaderPrograms = memory.shaderPrograms;
 
         return loadShaderVariables(allocator, shaderPrograms.data(), shaderPrograms.size());
+    }
+
+    bool loadEntityBindings(const ShaderProgram* program, EntityBindings* entityBindings)
+    {
+        if (!isActive(program))
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i < program->uniformCount; ++i)
+        {
+            const ShaderUniformVariable* uniform = program->uniforms + i;
+
+            switch (uniform->type)
+            {
+            case GPUDataType::MAT_4:
+                if (uniform->count == 3)
+                {
+                    entityBindings->transformUniform = uniform;
+                }
+                break;
+            case GPUDataType::VEC_2:
+                if (uniform->count == 2)
+                {
+                    entityBindings->uvUniform = uniform;
+                }
+                break;
+            case GPUDataType::VEC_4:
+                if (uniform->count == 1)
+                {
+                    entityBindings->materialColorUniform = uniform;
+                }
+                break;
+            case GPUDataType::UINT:
+                if (uniform->count == 1)
+                {
+                    entityBindings->layerUniform = uniform;
+                }
+                break;
+            case GPUDataType::UVEC_2:
+                if (uniform->count == 1)
+                {
+                    entityBindings->tileSizeUniform = uniform;
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        return isValid(entityBindings);
+    }
+
+    bool loadEntityBindings(Allocator* allocator, const MutableGraphicsMemory& memory, const ShaderProgram* programs, size_t count)
+    {
+        if (!programs)
+        {
+            return false;
+        }
+
+        allocator->requestMemory<uint64_t>(static_cast<uint64_t>(count));
+        auto* entityBindings = allocator->requestMemoryArray<EntityBindings>(count);
+
+        bool allLoaded{ true };
+        for (size_t i = 0; i < count; ++i)
+        {
+            if (!loadEntityBindings(programs + i, entityBindings))
+            {
+                allLoaded = false;
+
+                const auto shaderUniformVariables = memory.shaderUniformVariables;
+
+                if (!entityBindings->transformUniform)
+                {
+                    entityBindings->transformUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                }
+
+                if (!entityBindings->uvUniform)
+                {
+                    entityBindings->uvUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                }
+
+                if (!entityBindings->materialColorUniform)
+                {
+                    entityBindings->materialColorUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                }
+
+                if (!entityBindings->tileSizeUniform)
+                {
+                    entityBindings->tileSizeUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                }
+
+                if (!entityBindings->layerUniform)
+                {
+                    entityBindings->layerUniform = ( shaderUniformVariables.data() + shaderUniformVariables.size() - 1 );
+                }
+            }
+
+            ++entityBindings;
+        }
+
+        return allLoaded;
+    }
+
+    bool loadEntityBindings(Allocator* allocator, const MutableGraphicsMemory& memory)
+    {
+        const auto shaderPrograms = memory.shaderPrograms;
+
+        return loadEntityBindings(allocator, memory, shaderPrograms.data(), shaderPrograms.size());
     }
 
     void initializeGraphicsState()

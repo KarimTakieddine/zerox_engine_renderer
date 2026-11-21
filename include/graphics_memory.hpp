@@ -6,6 +6,7 @@
 #include "eye.h"
 #include "frustum.h"
 #include "locations_descriptor.h"
+#include "render_entity_bindings.h"
 #include "shader.h"
 #include "shader_program.h"
 #include "spans.hpp"
@@ -23,6 +24,7 @@ namespace renderer
         DynamicSpan<ShaderProgram, IsConst> shaderPrograms;
         DynamicSpan<char, IsConst> shaderUniformNames;
         DynamicSpan<ShaderUniformVariable, IsConst> shaderUniformVariables;
+        DynamicSpan<EntityBindings, IsConst> renderEntityBindings;
         DynamicSpan<std::byte, IsConst> meshSpan;
         DynamicSpan<LocationsDescriptor, IsConst> locationsDescriptors;
         DynamicSpan<Eye, IsConst> cameraEye;
@@ -47,6 +49,7 @@ namespace renderer
             memory.shaderPrograms,
             memory.shaderUniformNames,
             memory.shaderUniformVariables,
+            memory.renderEntityBindings,
             memory.meshSpan,
             memory.locationsDescriptors,
             memory.cameraEye,
