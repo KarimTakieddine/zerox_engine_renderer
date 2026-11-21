@@ -152,15 +152,11 @@ namespace renderer
         allocateBuffers(allocator, config->bufferCount);
         allocateVertexArrays(allocator, config->vertexArrayCount);
         allocateTextures(allocator, config->textureCount + config->textureArrayCount);
+        allocateMeshes(allocator, config->meshCount, config->meshes);
         allocateShaders(allocator, config->shaderCount);
         allocateShaderPrograms(allocator, config->shaderProgramCount);
-        allocateMeshes(allocator, config->meshCount, config->meshes);
-
-        /*allocateMeshes(allocator, config->meshCount, config->meshes);
-        allocateLocationsDescriptors(allocator, config->locationsDescriptorCount);
         allocateCamera(allocator);
         allocateUniformBuffer(allocator, 4);
-        allocateRenderBatchCount(allocator);*/
     }
 
     void initializeGraphicsResources(Allocator* allocator, const GraphicsConfig* config)
@@ -173,17 +169,21 @@ namespace renderer
         generateMeshes(globalMemory);
         loadShaders(globalMemory, config->shaders, config->shaderCount);
         loadShaderPrograms(globalMemory, config->shaderCompileSteps, config->compileStepCount);
-        loadShaderUniforms(allocator, globalMemory);
+        setCameraEye(globalMemory, config->cameraEye);
+        setCameraFrustum(globalMemory, config->cameraFrustum);
+        updateCamera(globalMemory);
+        generateUniformBuffer(globalMemory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
+        mapCameraUniforms(globalMemory);
         loadShaderAttributes(allocator, globalMemory);
-        loadEntityBindings(allocator, globalMemory);
-        allocateCamera(allocator);
-        allocateUniformBuffer(allocator, 4);
-        allocateRenderBatchCount(allocator);
+        loadShaderUniforms(allocator, globalMemory);
 
         auto graphicsMemory = freezeGraphicsMemory(readGraphicsMemory(allocator));
 
-        uploadMeshes(graphicsMemory);
+        loadEntityBindings(allocator, graphicsMemory);
+        allocateUniformBuffer(allocator, 4);
+        allocateRenderBatchCount(allocator);
 
+        uploadMeshes(graphicsMemory);
         uploadTextures(graphicsMemory, config->textureCount, config->textures);
 
         for (size_t i = 0; i < config->textureArrayCount; ++i)
@@ -197,28 +197,6 @@ namespace renderer
                 textureArray->textureCount,
                 textureArray->paths);
         }
-
-        setCameraEye(globalMemory, config->cameraEye);
-        setCameraFrustum(globalMemory, config->cameraFrustum);
-        updateCamera(globalMemory);
-
-        generateUniformBuffer(globalMemory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
-        mapCameraUniforms(globalMemory);
-
-        /*
-        for (size_t i = 0; i < config->locationsLinkCount; ++i)
-        {
-            const ShaderLocationsLink* link = config->shaderLocationsLinks + i;
-
-            setShaderLocations(memory, link->shaderProgramIndex, link->locationsIndex);
-        }
-
-        setCameraEye(memory, config->cameraEye);
-        setCameraFrustum(memory, config->cameraFrustum);
-        updateCamera(memory);
-
-        generateUniformBuffer(memory, 0, config->cameraUniformBuffer, config->cameraUniformNames);
-        mapCameraUniforms(memory);*/
     }
 
     void freeGraphicsResources(const MutableGraphicsMemory& memory)

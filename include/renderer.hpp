@@ -115,34 +115,6 @@ namespace renderer
         graphicsMemory.textures                     = textures;
         cursor.step_array<unsigned int>(textures.size());
 
-        DynamicSpan<Shader, IsConst> shaders    = memoryView.template read_contiguous_array<Shader>(cursor.getOffset());
-        graphicsMemory.shaders                  = shaders;
-        cursor.step_array<Shader>(shaders.size());
-
-        DynamicSpan<ShaderProgram, IsConst> shaderPrograms  = memoryView.template read_contiguous_array<ShaderProgram>(cursor.getOffset());
-        graphicsMemory.shaderPrograms                       = shaderPrograms;
-        cursor.step_array<ShaderProgram>(shaderPrograms.size());
-
-        DynamicSpan<char, IsConst> shaderAttributeNames = memoryView.template read_contiguous_array<char>(cursor.getOffset());
-        graphicsMemory.shaderAttributeNames             = shaderAttributeNames;
-        cursor.step_array<char>(shaderAttributeNames.size());
-
-        DynamicSpan<ShaderVariable, IsConst> shaderAttributes  = memoryView.template read_contiguous_array<ShaderVariable>(cursor.getOffset());
-        graphicsMemory.shaderAttributes                         = shaderAttributes;
-        cursor.step_array<ShaderVariable>(shaderAttributes.size());
-
-        DynamicSpan<char, IsConst> shaderUniformNames   = memoryView.template read_contiguous_array<char>(cursor.getOffset());
-        graphicsMemory.shaderUniformNames               = shaderUniformNames;
-        cursor.step_array<char>(shaderUniformNames.size());
-
-        DynamicSpan<ShaderVariable, IsConst> shaderUniforms     = memoryView.template read_contiguous_array<ShaderVariable>(cursor.getOffset());
-        graphicsMemory.shaderUniforms                           = shaderUniforms;
-        cursor.step_array<ShaderVariable>(shaderUniforms.size());
-
-        DynamicSpan<EntityBindings, IsConst> renderEntityBindings   = memoryView.template read_contiguous_array<EntityBindings>(cursor.getOffset());
-        graphicsMemory.renderEntityBindings                         = renderEntityBindings;
-        cursor.step_array<EntityBindings>(renderEntityBindings.size());
-
         const uint64_t meshDataOffset   = cursor.getOffset();
         const uint64_t meshCount        = *memoryView.template read_object<uint64_t>(meshDataOffset).data();
         cursor.step<uint64_t>();
@@ -160,9 +132,13 @@ namespace renderer
 
         graphicsMemory.meshSpan = allocatorSpan.subspan(meshDataOffset, cursor.getOffset() - meshDataOffset);
 
-        /*DynamicSpan<LocationsDescriptor, IsConst> locationsDescriptors  = memoryView.template read_contiguous_array<LocationsDescriptor>(cursor.getOffset());
-        graphicsMemory.locationsDescriptors                             = locationsDescriptors;
-        cursor.step_array<LocationsDescriptor>(locationsDescriptors.size());*/
+        DynamicSpan<Shader, IsConst> shaders    = memoryView.template read_contiguous_array<Shader>(cursor.getOffset());
+        graphicsMemory.shaders                  = shaders;
+        cursor.step_array<Shader>(shaders.size());
+
+        DynamicSpan<ShaderProgram, IsConst> shaderPrograms  = memoryView.template read_contiguous_array<ShaderProgram>(cursor.getOffset());
+        graphicsMemory.shaderPrograms                       = shaderPrograms;
+        cursor.step_array<ShaderProgram>(shaderPrograms.size());
 
         DynamicSpan<Eye, IsConst> cameraEye = memoryView.template read_object<Eye>(cursor.getOffset());
         graphicsMemory.cameraEye            = cameraEye;
@@ -183,6 +159,26 @@ namespace renderer
         DynamicSpan<UniformBufferSegment, IsConst> uniformBufferSegments    = memoryView.template read_contiguous_array<UniformBufferSegment>(cursor.getOffset());
         graphicsMemory.uniformBufferSegments                                = uniformBufferSegments;
         cursor.step_array<UniformBufferSegment>(uniformBufferSegments.size());
+
+        DynamicSpan<char, IsConst> shaderAttributeNames = memoryView.template read_contiguous_array<char>(cursor.getOffset());
+        graphicsMemory.shaderAttributeNames             = shaderAttributeNames;
+        cursor.step_array<char>(shaderAttributeNames.size());
+
+        DynamicSpan<ShaderVariable, IsConst> shaderAttributes   = memoryView.template read_contiguous_array<ShaderVariable>(cursor.getOffset());
+        graphicsMemory.shaderAttributes                         = shaderAttributes;
+        cursor.step_array<ShaderVariable>(shaderAttributes.size());
+
+        DynamicSpan<char, IsConst> shaderUniformNames   = memoryView.template read_contiguous_array<char>(cursor.getOffset());
+        graphicsMemory.shaderUniformNames               = shaderUniformNames;
+        cursor.step_array<char>(shaderUniformNames.size());
+
+        DynamicSpan<ShaderVariable, IsConst> shaderUniforms = memoryView.template read_contiguous_array<ShaderVariable>(cursor.getOffset());
+        graphicsMemory.shaderUniforms                       = shaderUniforms;
+        cursor.step_array<ShaderVariable>(shaderUniforms.size());
+
+        DynamicSpan<EntityBindings, IsConst> renderEntityBindings   = memoryView.template read_contiguous_array<EntityBindings>(cursor.getOffset());
+        graphicsMemory.renderEntityBindings                         = renderEntityBindings;
+        cursor.step_array<EntityBindings>(renderEntityBindings.size());
 
         graphicsMemory.renderBatchCount = memoryView.template read_object<uint64_t>(cursor.getOffset());
         cursor.step<uint64_t>();
@@ -243,8 +239,8 @@ namespace renderer
     bool loadShaderAttributes(Allocator* allocator, const MutableGraphicsMemory& memory);
 
     bool loadEntityBindings(const ShaderProgram* program, EntityBindings* entityBindings);
-    bool loadEntityBindings(Allocator* allocator, const MutableGraphicsMemory& memory, const ShaderProgram* programs, size_t count);
-    bool loadEntityBindings(Allocator* allocator, const MutableGraphicsMemory& memory);
+    bool loadEntityBindings(Allocator* allocator, const ConstGraphicsMemory& memory, const ShaderProgram* programs, size_t count);
+    bool loadEntityBindings(Allocator* allocator, const ConstGraphicsMemory& memory);
 
     void generateMeshes(const MutableGraphicsMemory& memory);
     void uploadMeshes(const ConstGraphicsMemory& memory);

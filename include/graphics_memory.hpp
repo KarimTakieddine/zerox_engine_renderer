@@ -20,6 +20,7 @@ namespace renderer
         DynamicSpan<unsigned int, IsConst> bufferObjects;
         DynamicSpan<unsigned int, IsConst> vertexArrayObjects;
         DynamicSpan<unsigned int, IsConst> textures;
+        DynamicSpan<std::byte, IsConst> meshSpan;
         DynamicSpan<Shader, IsConst> shaders;
         DynamicSpan<ShaderProgram, IsConst> shaderPrograms;
         DynamicSpan<char, IsConst> shaderAttributeNames;
@@ -27,7 +28,6 @@ namespace renderer
         DynamicSpan<char, IsConst> shaderUniformNames;
         DynamicSpan<ShaderVariable, IsConst> shaderUniforms;
         DynamicSpan<EntityBindings, IsConst> renderEntityBindings;
-        DynamicSpan<std::byte, IsConst> meshSpan;
         DynamicSpan<LocationsDescriptor, IsConst> locationsDescriptors;
         DynamicSpan<Eye, IsConst> cameraEye;
         DynamicSpan<Frustum, IsConst> cameraFrustum;
@@ -47,6 +47,7 @@ namespace renderer
             memory.bufferObjects,
             memory.vertexArrayObjects,
             memory.textures,
+            memory.meshSpan,
             memory.shaders,
             memory.shaderPrograms,
             memory.shaderAttributeNames,
@@ -54,7 +55,6 @@ namespace renderer
             memory.shaderUniformNames,
             memory.shaderUniforms,
             memory.renderEntityBindings,
-            memory.meshSpan,
             memory.locationsDescriptors,
             memory.cameraEye,
             memory.cameraFrustum,

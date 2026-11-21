@@ -689,7 +689,7 @@ namespace renderer
         bool allLoaded{ true };
         for (GLint i = 0; i < attributeCount; ++i)
         {
-            GLchar* attributeName = nameBuffer + ( i * MAX_VARIABLE_NAME_LENGTH);
+            GLchar* attributeName = nameBuffer + ( i * MAX_VARIABLE_NAME_LENGTH );
 
             GLsizei nameLength  { 0 };
             GLint count         { 0 };
@@ -713,7 +713,7 @@ namespace renderer
                 .name       = attributeName,
                 .location   = glGetAttribLocation(programId, attributeName),
                 .type       = ::glEnumToVariableType(attributeType),
-                .count      = static_cast<uint16_t>(attributeCount)
+                .count      = static_cast<uint16_t>(count)
             };
         }
 
@@ -736,6 +736,11 @@ namespace renderer
         const size_t namesBufferSize{ totalAttributeCount * MAX_VARIABLE_NAME_LENGTH };
         allocator->requestMemory<uint64_t>(namesBufferSize);
         auto* namesBuffer = allocator->requestMemoryArray<GLchar>(namesBufferSize, '\0');
+
+        if (totalAttributeCount == 0)
+        {
+            return false;
+        }
 
         const size_t bufferSize = totalAttributeCount + 1;
         allocator->requestMemory<uint64_t>(bufferSize);
@@ -827,7 +832,7 @@ namespace renderer
         return isValid(entityBindings);
     }
 
-    bool loadEntityBindings(Allocator* allocator, const MutableGraphicsMemory& memory, const ShaderProgram* programs, size_t count)
+    bool loadEntityBindings(Allocator* allocator, const ConstGraphicsMemory& memory, const ShaderProgram* programs, size_t count)
     {
         if (!programs)
         {
@@ -878,7 +883,7 @@ namespace renderer
         return allLoaded;
     }
 
-    bool loadEntityBindings(Allocator* allocator, const MutableGraphicsMemory& memory)
+    bool loadEntityBindings(Allocator* allocator, const ConstGraphicsMemory& memory)
     {
         const auto shaderPrograms = memory.shaderPrograms;
 
