@@ -70,7 +70,6 @@ namespace renderer
         const char* const cameraUniformBuffer           { nullptr };
         const char* const* cameraUniformNames           { nullptr };
         const ShaderCompileStep* shaderCompileSteps     { nullptr };
-        const ShaderLocationsLink* shaderLocationsLinks { nullptr };
         const TextureArray* textureArrays               { nullptr };
         size_t meshCount                                { 0 };
         size_t bufferCount                              { 0 };
@@ -79,9 +78,7 @@ namespace renderer
         size_t textureArrayCount                        { 0 };
         size_t shaderCount                              { 0 };
         size_t shaderProgramCount                       { 0 };
-        size_t locationsDescriptorCount                 { 0 };
         size_t compileStepCount                         { 0 };
-        size_t locationsLinkCount                       { 0 };
     };
 
     template<bool IsConst = false>
