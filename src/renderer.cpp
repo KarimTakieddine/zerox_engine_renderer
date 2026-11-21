@@ -271,10 +271,23 @@ namespace renderer
         const auto* buffers = meshView.read_object<MeshBufferIndices>(meshCursor.getOffset()).data();
         meshCursor.step<MeshBufferIndices>();
 
+        const auto vertices = meshView.read_contiguous_array<Vertex>(meshCursor.getOffset());
+        meshCursor.step_array<Vertex>(vertices.size());
+
+        const auto triangles = meshView.read_contiguous_array<unsigned int>(meshCursor.getOffset());
+        meshCursor.step_array<unsigned int>(triangles.size());
+
+        const auto triangleCount = static_cast<unsigned int>(triangles.size());
+        if (command.elementCount != triangleCount)
+        {
+            batch->elementCount = triangleCount;
+        }
+
         const ShaderProgram* shaderProgram  = memory.shaderPrograms.data() + static_cast<size_t>(batch->shaderProgramIndex);
         const unsigned int vertexArray      = *(memory.vertexArrayObjects.data() + static_cast<size_t>(batch->vertexArrayIndex));
 
         renderBatch(shaderProgram, vertexArray);
+
         setVertexLayout(
             shaderProgram,
             memory.renderEntityBindings.data() + static_cast<size_t>(batch->shaderProgramIndex),

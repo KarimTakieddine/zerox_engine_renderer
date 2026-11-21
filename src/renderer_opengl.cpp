@@ -1133,30 +1133,23 @@ namespace renderer
 
     void renderEntity(const ZeroXBridge::RenderEntity* entity, const EntityBindings* entityBindings, DrawMode drawMode, int elementCount, const glm::vec2& pixelsPerUnit)
     {
-        /*const ZeroXBridge::Transform& entityTransform = entity->transform;
+        ZeroXBridge::Transform entityTransform = entity->transform;
 
-        glm::mat4 entityLocalToWorld    = entityTransform.localToWorld;
-        glm::vec4& position             = entityLocalToWorld[3];
+        glm::vec4& position = entityTransform.localToWorld[3];
 
         position.x = glm::round(position.x * pixelsPerUnit.x) / pixelsPerUnit.x;
         position.y = glm::round(position.y * pixelsPerUnit.y) / pixelsPerUnit.y;
 
-        const glm::mat4 transformMatrices[3] = {
-            entityLocalToWorld,
-            entityTransform.localRotation,
-            entityTransform.localScale
-        };
-        
+        glUniformMatrix4fv(entityBindings->transformUniform->location, 3, GL_FALSE, reinterpret_cast<const GLfloat*>(&entityTransform.localToWorld));
+
         const ZeroXBridge::Material& material = entity->material;
 
-        glUniformMatrix4fv(descriptor->transformLocation, 3, GL_FALSE, &transformMatrices[0][0].x);
-        glUniform4fv(descriptor->materialColorLocation, 1, glm::value_ptr(material.color));
-        glUniform2fv(descriptor->uvScaleLocation, 1, glm::value_ptr(material.uvScale));
-        glUniform2ui(descriptor->tileSizeLocation, static_cast<GLuint>(material.tileSizeX), static_cast<GLuint>(material.tileSizeY));
-        glUniform2fv(descriptor->textureOffsetLocation, 1, glm::value_ptr(material.uvOffset));
-        glUniform1ui(descriptor->textureLayerLocation, entity->layer);
+        glUniform4fv(entityBindings->materialColorUniform->location, 1, glm::value_ptr(material.color));
+        glUniform2fv(entityBindings->uvUniform->location, 2, reinterpret_cast<const GLfloat*>(&material.uvScale));
+        glUniform2ui(entityBindings->tileSizeUniform->location, static_cast<GLuint>(material.tileSizeX), static_cast<GLuint>(material.tileSizeY));
+        glUniform1ui(entityBindings->layerUniform->location, entity->layer);
 
-        glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);*/
+        glDrawElements(::drawModeToGLenum(drawMode), elementCount, GL_UNSIGNED_INT, nullptr);
     }
 
     void freeBuffers(const MutableGraphicsMemory& memory)
