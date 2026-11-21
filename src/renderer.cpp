@@ -214,9 +214,9 @@ namespace renderer
             const auto entities = renderBatchView.read_contiguous_array<ZeroXBridge::RenderEntity>(renderBatchCursor.getOffset());
             renderBatchCursor.step_array<ZeroXBridge::RenderEntity>(entities.size());
 
+            size_t shaderProgramIndex = static_cast<size_t>(batch->shaderProgramIndex);
 
-
-            /*const ShaderProgram* shaderProgram      = memory.shaderPrograms.data() + shaderProgramIndex;
+            const ShaderProgram* shaderProgram      = memory.shaderPrograms.data() + shaderProgramIndex;
             const EntityBindings* entityBindings    = memory.renderEntityBindings.data() + shaderProgramIndex;
 
             renderBatch(shaderProgram, *(memory.vertexArrayObjects.data() + static_cast<size_t>(batch->vertexArrayIndex)));
@@ -224,7 +224,7 @@ namespace renderer
             for (size_t j = 0; j < entities.size(); ++j)
             {
                 renderEntity(entities.data() + j, entityBindings, batch->drawMode, batch->elementCount, pixelsPerUnit);
-            }*/
+            }
         }
     }
 
