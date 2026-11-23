@@ -47,13 +47,6 @@ namespace renderer
         size_t shaderProgramIndex   { 0 };
     };
 
-    struct alignas(16) TextureArrayConfig
-    {
-        ZeroXBridge::Texture data;
-        const char* const* paths{ nullptr };
-        size_t textureCount     { 0 };
-    };
-
     struct GraphicsConfig
     {
         const Mesh* meshes                              { nullptr };
@@ -63,11 +56,9 @@ namespace renderer
         const char* const cameraUniformBuffer           { nullptr };
         const char* const* cameraUniformNames           { nullptr };
         const ShaderCompileStep* shaderCompileSteps     { nullptr };
-        const TextureArrayConfig* textureArrays         { nullptr };
         size_t meshCount                                { 0 };
         size_t bufferCount                              { 0 };
         size_t vertexArrayCount                         { 0 };
-        size_t textureArrayCount                        { 0 };
         size_t shaderCount                              { 0 };
         size_t shaderProgramCount                       { 0 };
         size_t compileStepCount                         { 0 };

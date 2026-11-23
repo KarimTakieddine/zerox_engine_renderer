@@ -179,18 +179,6 @@ namespace renderer
         allocateRenderBatchCount(allocator);
 
         uploadMeshes(graphicsMemory);
-
-        for (size_t i = 0; i < config->textureArrayCount; ++i)
-        {
-            const TextureArrayConfig* textureArray = config->textureArrays + i;
-
-            uploadTextureArray(
-                graphicsMemory,
-                textureArray->data,
-                i,
-                textureArray->textureCount,
-                textureArray->paths);
-        }
     }
 
     void freeGraphicsResources(const MutableGraphicsMemory& memory)
