@@ -64,6 +64,16 @@ namespace renderer
         size_t compileStepCount                         { 0 };
     };
 
+    inline constexpr size_t getChannelCount(ZeroXBridge::TextureFormat format)
+    {
+        switch (format)
+        {
+        case ZeroXBridge::TextureFormat::RGB:   return 3;
+        case ZeroXBridge::TextureFormat::RGBA:  return 4;
+        default:                                return 0;
+        };
+    }
+
     template<bool IsConst = false>
     inline GraphicsMemory<IsConst> readGraphicsMemory(std::conditional_t<IsConst, const Allocator*, Allocator*> allocator)
     {

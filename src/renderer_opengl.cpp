@@ -61,16 +61,6 @@ namespace
         }
     }
 
-    constexpr size_t getChannelCount(ZeroXBridge::TextureFormat format)
-    {
-        switch (format)
-        {
-        case ZeroXBridge::TextureFormat::RGB:   return 3;
-        case ZeroXBridge::TextureFormat::RGBA:  return 4;
-        default:                                return 0;
-        }
-    }
-
     using renderer::Shader;
 
     constexpr GLenum shaderTypeToGLenum(Shader::Type type)
@@ -168,7 +158,7 @@ namespace renderer
                 GL_TEXTURE_2D, 0, glFormat, static_cast<GLsizei>(width), static_cast<GLsizei>(height),
                 0, glFormat, GL_UNSIGNED_BYTE, pixelData);
 
-            pixelData += static_cast<size_t>(width) * height * ::getChannelCount(texture->format);
+            pixelData += static_cast<size_t>(width) * height * getChannelCount(texture->format);
         }
 
         return true;
@@ -204,7 +194,7 @@ namespace renderer
                 width, height, 1,
                 ::textureFormatToGLenum(format), GL_UNSIGNED_BYTE, pixelData);
 
-            pixelData += static_cast<size_t>(width) * height * ::getChannelCount(format);
+            pixelData += static_cast<size_t>(width) * height * getChannelCount(format);
         }
 
         return true;
