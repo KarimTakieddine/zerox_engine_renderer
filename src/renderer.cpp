@@ -1,3 +1,6 @@
+#include <string>
+#include <vector>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
 
@@ -144,7 +147,7 @@ namespace renderer
 
         allocateBuffers(allocator, config->bufferCount);
         allocateVertexArrays(allocator, config->vertexArrayCount);
-        allocateTextures(allocator, config->textureCount + config->textureArrayCount);
+        allocateTextures(allocator, 16);
         allocateMeshes(allocator, config->meshCount, config->meshes);
         allocateShaders(allocator, config->shaderCount);
         allocateShaderPrograms(allocator, config->shaderProgramCount);
@@ -176,19 +179,6 @@ namespace renderer
         allocateRenderBatchCount(allocator);
 
         uploadMeshes(graphicsMemory);
-        uploadTextures(graphicsMemory, config->textureCount, config->textures);
-
-        for (size_t i = 0; i < config->textureArrayCount; ++i)
-        {
-            const TextureArray* textureArray = config->textureArrays + i;
-
-            uploadTextureArray(
-                graphicsMemory,
-                textureArray->data,
-                config->textureCount + i,
-                textureArray->textureCount,
-                textureArray->paths);
-        }
     }
 
     void freeGraphicsResources(const MutableGraphicsMemory& memory)
