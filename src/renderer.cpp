@@ -182,7 +182,7 @@ namespace renderer
 
         std::vector<const char*> texturePaths;
         std::vector<ZeroXBridge::Texture> textures;
-        for (size_t i = 0; i < config->textureCount; ++config)
+        for (size_t i = 0; i < config->textureCount; ++i)
         {
             const TextureConfig* textureConfig = config->textures + i;
 
