@@ -180,20 +180,6 @@ namespace renderer
 
         uploadMeshes(graphicsMemory);
 
-        std::vector<const char*> texturePaths;
-        std::vector<ZeroXBridge::Texture> textures;
-        for (size_t i = 0; i < config->textureCount; ++i)
-        {
-            const TextureConfig* textureConfig = config->textures + i;
-
-            texturePaths.push_back(textureConfig->path);
-            textures.push_back(textureConfig->texture);
-        }
-
-        uploadTextures(
-            graphicsMemory,
-            config->textureCount, texturePaths.data(), textures.data());
-
         for (size_t i = 0; i < config->textureArrayCount; ++i)
         {
             const TextureArrayConfig* textureArray = config->textureArrays + i;
@@ -201,7 +187,7 @@ namespace renderer
             uploadTextureArray(
                 graphicsMemory,
                 textureArray->data,
-                config->textureCount + i,
+                i,
                 textureArray->textureCount,
                 textureArray->paths);
         }

@@ -54,16 +54,9 @@ namespace renderer
         size_t textureCount     { 0 };
     };
 
-    struct TextureConfig
-    {
-        ZeroXBridge::Texture texture;
-        const char* path{ nullptr };
-    };
-
     struct GraphicsConfig
     {
         const Mesh* meshes                              { nullptr };
-        const TextureConfig* textures                   { nullptr };
         const ShaderLoadInfo* shaders                   { nullptr };
         const Eye* cameraEye                            { nullptr };
         const Frustum* cameraFrustum                    { nullptr };
@@ -74,7 +67,6 @@ namespace renderer
         size_t meshCount                                { 0 };
         size_t bufferCount                              { 0 };
         size_t vertexArrayCount                         { 0 };
-        size_t textureCount                             { 0 };
         size_t textureArrayCount                        { 0 };
         size_t shaderCount                              { 0 };
         size_t shaderProgramCount                       { 0 };
