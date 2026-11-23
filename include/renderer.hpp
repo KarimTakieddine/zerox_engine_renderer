@@ -47,30 +47,30 @@ namespace renderer
         size_t shaderProgramIndex   { 0 };
     };
 
-    struct alignas(16) TextureArray
+    struct alignas(16) TextureArrayConfig
     {
         ZeroXBridge::Texture data;
         const char* const* paths{ nullptr };
         size_t textureCount     { 0 };
     };
 
-    struct Texture
+    struct TextureConfig
     {
-        ZeroXBridge::Texture data;
+        ZeroXBridge::Texture texture;
         const char* path{ nullptr };
     };
 
     struct GraphicsConfig
     {
         const Mesh* meshes                              { nullptr };
-        const Texture* textures                         { nullptr };
+        const TextureConfig* textures                   { nullptr };
         const ShaderLoadInfo* shaders                   { nullptr };
         const Eye* cameraEye                            { nullptr };
         const Frustum* cameraFrustum                    { nullptr };
         const char* const cameraUniformBuffer           { nullptr };
         const char* const* cameraUniformNames           { nullptr };
         const ShaderCompileStep* shaderCompileSteps     { nullptr };
-        const TextureArray* textureArrays               { nullptr };
+        const TextureArrayConfig* textureArrays         { nullptr };
         size_t meshCount                                { 0 };
         size_t bufferCount                              { 0 };
         size_t vertexArrayCount                         { 0 };
@@ -212,7 +212,7 @@ namespace renderer
     void generateVertexArrays(const MutableGraphicsMemory& memory);
 
     void generateTextures(const MutableGraphicsMemory& memory);
-    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const Texture* textures);
+    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const char* const* paths, const ZeroXBridge::Texture* textures);
     bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles);
 
     bool createShader(Shader* shader, Shader::Type type);

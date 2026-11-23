@@ -1,3 +1,6 @@
+#include <string>
+#include <vector>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
 
@@ -144,7 +147,7 @@ namespace renderer
 
         allocateBuffers(allocator, config->bufferCount);
         allocateVertexArrays(allocator, config->vertexArrayCount);
-        allocateTextures(allocator, config->textureCount + config->textureArrayCount);
+        allocateTextures(allocator, 16);
         allocateMeshes(allocator, config->meshCount, config->meshes);
         allocateShaders(allocator, config->shaderCount);
         allocateShaderPrograms(allocator, config->shaderProgramCount);
@@ -176,11 +179,24 @@ namespace renderer
         allocateRenderBatchCount(allocator);
 
         uploadMeshes(graphicsMemory);
-        uploadTextures(graphicsMemory, config->textureCount, config->textures);
+
+        std::vector<const char*> texturePaths;
+        std::vector<ZeroXBridge::Texture> textures;
+        for (size_t i = 0; i < config->textureCount; ++config)
+        {
+            const TextureConfig* textureConfig = config->textures + i;
+
+            texturePaths.push_back(textureConfig->path);
+            textures.push_back(textureConfig->texture);
+        }
+
+        uploadTextures(
+            graphicsMemory,
+            config->textureCount, texturePaths.data(), textures.data());
 
         for (size_t i = 0; i < config->textureArrayCount; ++i)
         {
-            const TextureArray* textureArray = config->textureArrays + i;
+            const TextureArrayConfig* textureArray = config->textureArrays + i;
 
             uploadTextureArray(
                 graphicsMemory,

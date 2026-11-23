@@ -126,8 +126,13 @@ namespace renderer
         textureAllocator.allocate(static_cast<GLsizei>(textureObjects.size()));
     }
 
-    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const Texture* textures)
+    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const char* const* paths, const ZeroXBridge::Texture* textures)
     {
+        if (!paths)
+        {
+            return false;
+        }
+
         const auto textureObjects = memory.textures;
 
         const size_t objectCount = textureObjects.size();
@@ -141,16 +146,16 @@ namespace renderer
         {
             const auto* texture = textures + i;
 
-            auto image = platform::loadImage(texture->path, false);
+            auto image = platform::loadImage(paths[i], false);
 
             if (!image->isLoaded())
             {
                 return false;
             }
 
-            const auto& textureData = texture->data;
+            const ZeroXBridge::Texture* textureData = textures + i;
 
-            setTextureParameters(*(textureObjects.data() + i), GL_TEXTURE_2D, &textureData);
+            setTextureParameters(*(textureObjects.data() + i), GL_TEXTURE_2D, textureData);
 
             const GLenum format = ::imageFormatToGLenum(image->getFormat());
 
