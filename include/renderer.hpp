@@ -195,8 +195,8 @@ namespace renderer
     void generateVertexArrays(const MutableGraphicsMemory& memory);
 
     void generateTextures(const MutableGraphicsMemory& memory);
-    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const char* const* paths, const ZeroXBridge::Texture* textures);
-    bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles);
+    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const unsigned char* pixelData, const ZeroXBridge::Texture* textures);
+    bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture* texture, size_t textureIndex, size_t textureCount, const unsigned char* pixelData);
 
     bool createShader(Shader* shader, Shader::Type type);
     bool compileShader(Shader* shader, const char* content);

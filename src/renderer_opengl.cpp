@@ -6,7 +6,6 @@
 #include <memory_cursor.hpp>
 #include <memory_view.hpp>
 
-#include <platform.h>
 #include <zerox_render_entity.h>
 
 #include "opengl_allocator.h"
@@ -52,13 +51,23 @@ namespace
         }
     }
 
-    constexpr GLenum imageFormatToGLenum(platform::Image::Format format)
+    constexpr GLenum textureFormatToGLenum(ZeroXBridge::TextureFormat format)
     {
         switch (format)
         {
-        case platform::Image::Format::RGB:  return GL_RGB;
-        case platform::Image::Format::RGBA: return GL_RGBA;
-        default:                            return GL_NONE;
+        case ZeroXBridge::TextureFormat::RGB:   return GL_RGB;
+        case ZeroXBridge::TextureFormat::RGBA:  return GL_RGBA;
+        default:                                return GL_NONE;
+        }
+    }
+
+    constexpr size_t getChannelCount(ZeroXBridge::TextureFormat format)
+    {
+        switch (format)
+        {
+        case ZeroXBridge::TextureFormat::RGB:   return 3;
+        case ZeroXBridge::TextureFormat::RGBA:  return 4;
+        default:                                return 0;
         }
     }
 
@@ -126,9 +135,9 @@ namespace renderer
         textureAllocator.allocate(static_cast<GLsizei>(textureObjects.size()));
     }
 
-    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const char* const* paths, const ZeroXBridge::Texture* textures)
+    bool uploadTextures(const ConstGraphicsMemory& memory, size_t count, const unsigned char* pixelData, const ZeroXBridge::Texture* textures)
     {
-        if (!paths)
+        if (!pixelData)
         {
             return false;
         }
@@ -144,63 +153,58 @@ namespace renderer
 
         for (size_t i = 0; i < count; ++i)
         {
-            const auto* texture = textures + i;
+            const ZeroXBridge::Texture* texture = textures + i;
 
-            auto image = platform::loadImage(paths[i], false);
+            setTextureParameters(*(textureObjects.data() + i), GL_TEXTURE_2D, texture);
 
-            if (!image->isLoaded())
-            {
-                return false;
-            }
+            const ZeroXBridge::TextureFormat textureFormat = texture->format;
 
-            const ZeroXBridge::Texture* textureData = textures + i;
+            const GLenum glFormat = ::textureFormatToGLenum(textureFormat);
 
-            setTextureParameters(*(textureObjects.data() + i), GL_TEXTURE_2D, textureData);
-
-            const GLenum format = ::imageFormatToGLenum(image->getFormat());
+            const uint32_t width    = texture->width;
+            const uint32_t height   = texture->height;
 
 			glTexImage2D(
-                GL_TEXTURE_2D, 0, format, image->getWidth(), image->getHeight(),
-                0, format, GL_UNSIGNED_BYTE, image->getData());
+                GL_TEXTURE_2D, 0, glFormat, static_cast<GLsizei>(width), static_cast<GLsizei>(height),
+                0, glFormat, GL_UNSIGNED_BYTE, pixelData);
+
+            pixelData += static_cast<size_t>(width) * height * ::getChannelCount(texture->format);
         }
 
         return true;
     }
 
-    bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture& texture, size_t textureIndex, size_t textureCount, const char* const* imageFiles)
+    bool uploadTextureArray(const ConstGraphicsMemory& memory, const ZeroXBridge::Texture* texture, size_t textureIndex, size_t textureCount, const unsigned char* pixelData)
     {
+        if (!texture || !pixelData)
+        {
+            return false;
+        }
+
         const auto textures = memory.textures;
         if (textureIndex >= textures.size())
         {
             return false;
         }
 
-        setTextureParameters(*(textures.data() + textureIndex), GL_TEXTURE_2D_ARRAY, &texture);
+        setTextureParameters(*(textures.data() + textureIndex), GL_TEXTURE_2D_ARRAY, texture);
 
-        glTexStorage3D(
-            GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8,
-            texture.width, texture.height,
-            static_cast<GLsizei>(textureCount));
+        const uint32_t width    = texture->width;
+        const uint32_t height   = texture->height;
+
+        glTexStorage3D(GL_TEXTURE_2D_ARRAY, 1, GL_RGBA8, width, height, static_cast<GLsizei>(textureCount));
+
+        const ZeroXBridge::TextureFormat format = texture->format;
 
         for (size_t i = 0; i < textureCount; ++i)
         {
-            auto image = platform::loadImage(*(imageFiles + i), false);
-
-            if (!image->isLoaded())
-            {
-                return false;
-            }
-
-            if (image->getWidth() != texture.width || image->getHeight() != texture.height)
-            {
-                return false;
-            }
-
             glTexSubImage3D(
                 GL_TEXTURE_2D_ARRAY, 0,
                 0, 0, i,
-                texture.width, texture.height, 1,
-                ::imageFormatToGLenum(image->getFormat()), GL_UNSIGNED_BYTE, image->getData());
+                width, height, 1,
+                ::textureFormatToGLenum(format), GL_UNSIGNED_BYTE, pixelData);
+
+            pixelData += static_cast<size_t>(width) * height * ::getChannelCount(format);
         }
 
         return true;
